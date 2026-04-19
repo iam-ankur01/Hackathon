@@ -1,10 +1,10 @@
-# ── Secrets / credentials (NEVER commit) ───────────────────────────
-.env
+# ── Secrets / credentials ──────────────────────────────────────────
+# NOTE: Per project decision, .env files and the Firebase admin JSON
+# are intentionally committed so the project runs out-of-the-box.
+# Rotate any exposed credentials immediately if this repo is public.
 .env.local
 .env.*.local
 **/firebase-service-account.json
-**/hiresightai-*.json
-**/*-firebase-adminsdk-*.json
 *.pem
 *.key
 

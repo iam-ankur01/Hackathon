@@ -12,7 +12,7 @@ const links = [
 ];
 
 const Sidebar = () => (
-  <aside className="w-56 flex-shrink-0 hidden md:flex flex-col py-6 px-3 border-r border-white/5" style={{background:'rgba(8,13,26,0.6)', backdropFilter:'blur(20px)'}}>
+  <aside className="w-56 flex-shrink-0 hidden md:flex flex-col py-6 px-3" style={{background:'#fafafa', borderRight:'1px solid rgba(10,10,10,0.07)'}}>
     <nav className="space-y-1">
       {links.map(({ to, icon: Icon, label }) => (
         <NavLink key={to} to={to} className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
@@ -22,11 +22,13 @@ const Sidebar = () => (
       ))}
     </nav>
     <div className="mt-auto">
-      <div className="rounded-xl p-4" style={{background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.15)'}}>
-        <p className="text-xs font-semibold text-primary mb-1">HireScore™</p>
-        <p className="text-2xl font-display font-bold text-white">61<span className="text-sm text-textMuted">/100</span></p>
-        <div className="progress-bar mt-2"><div className="progress-fill" style={{width:'61%'}} /></div>
-        <p className="text-xs text-textMuted mt-1.5">+8 pts this week</p>
+      <div className="rounded-xl p-4" style={{background:'#0a0a0a', color:'#fafafa'}}>
+        <p className="text-xs font-semibold mb-1" style={{color:'#f5c518', letterSpacing:'0.08em', textTransform:'uppercase'}}>HireScore</p>
+        <p className="text-3xl font-display tracking-tightest" style={{fontWeight:700, color:'#ffffff'}}>61<span className="text-sm font-normal" style={{color:'#a1a1aa'}}>/100</span></p>
+        <div className="mt-2" style={{height:6, borderRadius:3, background:'rgba(255,255,255,0.1)', overflow:'hidden'}}>
+          <div style={{height:'100%', width:'61%', background:'#6d28d9', borderRadius:3}} />
+        </div>
+        <p className="text-xs mt-1.5" style={{color:'#a1a1aa'}}>+8 pts this week</p>
       </div>
     </div>
   </aside>

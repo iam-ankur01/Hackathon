@@ -4,24 +4,34 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#080D1A",
-        surface: "#0F1628",
-        surfaceHigh: "#161E35",
-        primary: { DEFAULT: "#6366F1", dark: "#4F46E5", light: "#818CF8" },
-        secondary: { DEFAULT: "#8B5CF6", dark: "#7C3AED" },
-        accent: { DEFAULT: "#22D3EE", dark: "#0EA5E9" },
-        success: "#10B981",
-        warning: "#F59E0B",
-        error: "#EF4444",
-        textMain: "#F1F5F9",
-        textMuted: "#64748B",
+        background:  "#ffffff",
+        surface:     "#fafafa",
+        surfaceHigh: "#f4f4f5",
+        // Deep violet primary (Solus-style)
+        primary:   { DEFAULT: "#6d28d9", dark: "#4c1d95", light: "#8b5cf6" },
+        // Dark near-black for contrast sections
+        secondary: { DEFAULT: "#0a0a0a", dark: "#000000" },
+        // Gold accent (underline highlights, NEW badges)
+        accent:    { DEFAULT: "#f5c518", dark: "#fbbf24" },
+        success:   "#16a34a",
+        warning:   "#d97706",
+        error:     "#b91c1c",
+        // Near-black body text on white
+        textMain:  "#0a0a0a",
+        textMuted: "#71717a",
       },
       fontFamily: {
-        display: ['Syne', 'system-ui', 'sans-serif'],
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        // Heavy grotesk for display (big bold headings like Solus)
+        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+        sans:    ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       backgroundImage: {
-        'grid-pattern': "linear-gradient(to right, rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(99,102,241,0.06) 1px, transparent 1px)",
+        'grid-pattern': "linear-gradient(to right, rgba(10,10,10,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(10,10,10,0.04) 1px, transparent 1px)",
+      },
+      letterSpacing: {
+        tightest: '-0.05em',
+        tighter2: '-0.03em',
       },
     },
   },

@@ -12,11 +12,11 @@ const ScoreRing = ({ score, label, color }) => {
     <div className="flex flex-col items-center gap-2">
       <div className="relative w-24 h-24">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
+          <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(10,10,10,0.08)" strokeWidth="7" />
           <circle cx="40" cy="40" r="36" fill="none" stroke={color} strokeWidth="7" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{transition:'stroke-dashoffset 1.5s ease'}} />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display font-bold text-xl text-white">{Math.round(score)}</span>
+          <span className="font-display font-bold text-xl" style={{color:'#0a0a0a'}}>{Math.round(score)}</span>
         </div>
       </div>
       <span className="text-textMuted text-xs font-medium text-center">{label}</span>
@@ -82,7 +82,7 @@ const Results = () => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="font-display font-bold text-2xl text-white mb-1">Interview Analysis Report</h1>
+          <h1 className="font-display font-bold text-2xl mb-1" style={{color:'#0a0a0a'}}>Interview Analysis Report</h1>
           <p className="text-textMuted text-sm">
             {data.job_title || 'Interview'} · {data.company_name || '—'} · {(data.completed_at || '').slice(0, 10)}
           </p>
@@ -106,14 +106,14 @@ const Results = () => {
 
       {/* Executive summary */}
       <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="card">
-        <h3 className="font-display font-semibold text-white mb-2">🧠 Executive Summary</h3>
+        <h3 className="font-display font-semibold mb-2">🧠 Executive Summary</h3>
         <p className="text-textMuted text-sm leading-relaxed">{r.executive_summary}</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Category breakdown with sub-scores */}
         <div className="lg:col-span-2 card">
-          <h3 className="font-display font-semibold text-white mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-accent" />Category Breakdown</h3>
+          <h3 className="font-display font-semibold mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-accent" />Category Breakdown</h3>
           <div className="space-y-4">
             {[
               { name: 'Public Speaking', c: ps, color: '#6366F1' },
@@ -123,7 +123,7 @@ const Results = () => {
             ].map((row, i) => (
               <div key={i} className="p-4 rounded-xl" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)'}}>
                 <div className="flex justify-between mb-1">
-                  <span className="text-white text-sm font-medium">{row.name}</span>
+                  <span className="text-sm font-medium" style={{color:'#0a0a0a'}}>{row.name}</span>
                   <span className="text-sm font-bold" style={{color:row.color}}>{row.c.score}/{row.c.max}</span>
                 </div>
                 <div className="progress-bar mb-2"><div className="progress-fill" style={{width:`${pct(row.c)}%`,background:row.color}} /></div>
@@ -135,7 +135,7 @@ const Results = () => {
 
         {/* Filler words */}
         <div className="card">
-          <h3 className="font-display font-semibold text-white mb-4 flex items-center gap-2"><MessageSquare className="w-4 h-4 text-secondary" />Filler Words</h3>
+          <h3 className="font-display font-semibold mb-4 flex items-center gap-2"><MessageSquare className="w-4 h-4 text-secondary" />Filler Words</h3>
           <div className="h-52">
             {fillers.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -158,7 +158,7 @@ const Results = () => {
 
         {/* Radar */}
         <div className="lg:col-span-1 card">
-          <h3 className="font-display font-semibold text-white mb-4 flex items-center gap-2">Skill Radar</h3>
+          <h3 className="font-display font-semibold mb-4 flex items-center gap-2">Skill Radar</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData}>
@@ -172,7 +172,7 @@ const Results = () => {
 
         {/* Strengths */}
         <div className="card">
-          <h3 className="font-display font-semibold text-white mb-3 flex items-center gap-2">✅ Strengths</h3>
+          <h3 className="font-display font-semibold mb-3 flex items-center gap-2">✅ Strengths</h3>
           <div className="space-y-2">
             {(r.strengths || []).map((s, i) => (
               <div key={i} className="p-3 rounded-xl text-sm text-success" style={{background:'rgba(16,185,129,0.06)',border:'1px solid rgba(16,185,129,0.15)'}}>{s}</div>
@@ -182,7 +182,7 @@ const Results = () => {
 
         {/* Improvement areas */}
         <div className="card">
-          <h3 className="font-display font-semibold text-white mb-3 flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-error" />Areas for Improvement</h3>
+          <h3 className="font-display font-semibold mb-3 flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-error" />Areas for Improvement</h3>
           <div className="space-y-2">
             {(r.areas_for_improvement || []).map((a, i) => (
               <div key={i} className="p-3 rounded-xl text-sm text-warning" style={{background:'rgba(245,158,11,0.06)',border:'1px solid rgba(245,158,11,0.15)'}}>{a}</div>
@@ -192,13 +192,13 @@ const Results = () => {
 
         {/* Coaching tips */}
         <div className="lg:col-span-3 rounded-2xl p-6" style={{background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08))',border:'1px solid rgba(99,102,241,0.2)'}}>
-          <h3 className="font-display font-semibold text-white mb-1 flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" />Coaching Tips</h3>
+          <h3 className="font-display font-semibold mb-1 flex items-center gap-2"><Lightbulb className="w-5 h-5 text-primary" />Coaching Tips</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             {(data.coaching?.tips || []).map((t, i) => (
               <div key={i} className="flex gap-3">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs" style={{background:'rgba(99,102,241,0.2)',color:'#818CF8'}}>{i+1}</div>
                 <div>
-                  <p className="text-white text-sm font-medium">{t.area}</p>
+                  <p className="text-sm font-medium" style={{color:'#0a0a0a'}}>{t.area}</p>
                   <p className="text-textMuted text-sm">{t.tip}</p>
                 </div>
               </div>

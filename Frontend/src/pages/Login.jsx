@@ -49,38 +49,36 @@ const Login = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left panel */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden" style={{background:'linear-gradient(135deg,#080D1A 0%,#0F1628 100%)'}}>
-        <div className="absolute inset-0 bg-grid-pattern" style={{backgroundSize:'40px 40px'}} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full" style={{background:'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)'}} />
-        <Link to="/" className="relative flex items-center gap-2 font-display font-bold text-xl">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{background:'linear-gradient(135deg,#6366F1,#22D3EE)'}}>H</div>
-          <span className="text-white">Hire<span className="text-primary-light">Sight</span></span>
+      <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden" style={{background:'#0a0a0a'}}>
+        <Link to="/" className="relative flex items-center gap-2 font-display text-xl" style={{fontWeight:700, letterSpacing:'-0.04em'}}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{background:'#6d28d9'}}>H</div>
+          <span style={{color:'#ffffff'}}>Hire<span style={{color:'#a78bfa'}}>Sight</span></span>
         </Link>
         <div className="relative">
-          <h2 className="font-display font-bold text-4xl text-white mb-6 leading-tight">
-            Know exactly where<br/>you lost the opportunity
+          <h2 className="font-display mb-8" style={{fontSize:'clamp(2rem,4vw,3.5rem)', fontWeight:700, letterSpacing:'-0.04em', lineHeight:1.05, color:'#ffffff'}}>
+            Know exactly where<br/>you lost the <span className="gold-underline" style={{color:'#a78bfa'}}>opportunity.</span>
           </h2>
           <div className="space-y-4">
             {['Second-by-second confidence analysis','GitHub & LinkedIn profile audit','AI-generated improvement roadmap','Personal AI coach that knows your history'].map((t,i)=>(
               <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{background:'rgba(34,211,238,0.15)'}}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{background:'rgba(245,197,24,0.15)'}}>
+                  <div className="w-1.5 h-1.5 rounded-full" style={{background:'#f5c518'}} />
                 </div>
-                <span className="text-textMuted text-sm">{t}</span>
+                <span className="text-sm" style={{color:'#a1a1aa'}}>{t}</span>
               </div>
             ))}
           </div>
         </div>
-        <p className="relative text-textMuted text-xs">© 2026 HireSight · DevClash 2026</p>
+        <p className="relative text-xs" style={{color:'#71717a'}}>© 2026 HireSight</p>
       </div>
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-6">
         <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="w-full max-w-md">
           <div className="mb-8">
-            <Link to="/" className="lg:hidden flex items-center gap-2 font-display font-bold text-xl mb-8">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{background:'linear-gradient(135deg,#6366F1,#22D3EE)'}}>H</div>
-              <span className="text-white">Hire<span className="text-primary-light">Sight</span></span>
+            <Link to="/" className="lg:hidden flex items-center gap-2 font-display text-xl mb-8" style={{fontWeight:700, letterSpacing:'-0.04em'}}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{background:'#6d28d9'}}>H</div>
+              <span style={{color:'#0a0a0a'}}>Hire<span style={{color:'#6d28d9'}}>Sight</span></span>
             </Link>
             <h1 className="font-display font-bold text-3xl text-white mb-2">
               {isSignup ? 'Create your account' : 'Welcome back'}

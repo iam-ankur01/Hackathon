@@ -18,7 +18,7 @@ from typing import Optional
 
 load_dotenv()  # loads GROQ_API_KEY from .env
 
-from files.transcriber import transcribe
+from transcriber import transcribe
 from rule_engine import analyze as rule_analyze
 from evaluator import evaluate
 from feedback import generate, FeedbackReport

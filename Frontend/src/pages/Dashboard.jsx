@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Mic, Link as LinkIcon, Briefcase, FileText, Sparkles, Video, X, CheckCircle, Clock, Zap } from 'lucide-react';
+import { Upload, Mic, MicOff, Square, Link as LinkIcon, Briefcase, FileText, Sparkles, Video, X, CheckCircle, Clock, Zap } from 'lucide-react';
 import { submitInterview, getInterview, getDashboard, uploadResume } from '../lib/api';
 
 const UploadTab = ({ icon: Icon, label, active, onClick }) => (
@@ -26,6 +26,101 @@ const Dashboard = ({ user }) => {
   const [error, setError] = useState('');
   const [stats, setStats] = useState(null);
   const [recentAnalyses, setRecentAnalyses] = useState([]);
+
+  // ── Recording state (MediaRecorder) ──
+  const [recording, setRecording] = useState(false);
+  const [recElapsed, setRecElapsed] = useState(0);
+  const [recError, setRecError] = useState('');
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const recTimerRef = useRef(null);
+
+  const stopRecording = () => {
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    } catch { /* ignore */ }
+    if (recTimerRef.current) {
+      clearInterval(recTimerRef.current);
+      recTimerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setRecording(false);
+  };
+
+  const startRecording = async () => {
+    setRecError('');
+    // Capability checks
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setRecError('Recording is not supported in this browser. Try Chrome, Edge, or Firefox.');
+      return;
+    }
+    if (typeof window.MediaRecorder === 'undefined') {
+      setRecError('MediaRecorder API is unavailable in this browser.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // Pick the most widely supported mime type.
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+      let mime = '';
+      for (const c of candidates) {
+        if (window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(c)) {
+          mime = c; break;
+        }
+      }
+      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      chunksRef.current = [];
+
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.onstop = () => {
+        const blobType = (mr.mimeType || 'audio/webm').split(';')[0];
+        const ext = blobType.includes('mp4') ? 'mp4'
+                   : blobType.includes('ogg') ? 'ogg'
+                   : 'webm';
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        // Server already accepts these extensions: .webm, .mp4, .ogg.
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const f = new File([blob], `recording-${ts}.${ext}`, { type: blobType });
+        setFile(f);
+        setError('');
+      };
+      mr.start();
+
+      setRecording(true);
+      setRecElapsed(0);
+      recTimerRef.current = setInterval(() => setRecElapsed(s => s + 1), 1000);
+    } catch (err) {
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setRecError('Microphone access denied. Please enable it in your browser settings.');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setRecError('No microphone found. Connect one and try again.');
+      } else if (name === 'AbortError') {
+        setRecError('Microphone permission was dismissed. Click the mic again to retry.');
+      } else {
+        setRecError(`Could not start recording (${name || 'unknown error'}).`);
+      }
+      // Clean up any partial stream.
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+    }
+  };
+
+  // Clean up if user navigates away mid-recording.
+  useEffect(() => () => stopRecording(), []);
 
   useEffect(() => {
     getDashboard().then((d) => {
@@ -162,12 +257,78 @@ const Dashboard = ({ user }) => {
               </motion.div>
             )}
             {tab === 'record' && (
-              <motion.div key="record" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="text-center py-10 border-2 border-dashed border-white/10 rounded-2xl">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" style={{background:'rgba(239,68,68,0.15)',border:'2px solid rgba(239,68,68,0.4)'}}>
-                  <Mic className="w-7 h-7 text-error" />
-                </div>
-                <p className="text-white font-medium mb-1">Click to start recording</p>
-                <p className="text-textMuted text-sm">Record your mock interview directly in the browser</p>
+              <motion.div key="record" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                {!recording && !file && (
+                  <div className="text-center py-10 border-2 border-dashed border-white/10 rounded-2xl">
+                    <button
+                      onClick={startRecording}
+                      className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+                      style={{background:'rgba(239,68,68,0.15)',border:'2px solid rgba(239,68,68,0.4)'}}
+                    >
+                      <Mic className="w-7 h-7 text-error" />
+                    </button>
+                    <p className="text-white font-medium mb-1">Click the mic to start recording</p>
+                    <p className="text-textMuted text-sm">We'll ask for microphone permission the first time.</p>
+                    {recError && (
+                      <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
+                           style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.3)',color:'#fca5a5'}}>
+                        <MicOff className="w-4 h-4" />
+                        {recError}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {recording && (
+                  <div className="text-center py-10 border-2 border-dashed rounded-2xl"
+                       style={{borderColor:'rgba(239,68,68,0.4)',background:'rgba(239,68,68,0.03)'}}>
+                    <div className="relative w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                         style={{background:'rgba(239,68,68,0.2)',border:'2px solid rgba(239,68,68,0.6)'}}>
+                      <Mic className="w-7 h-7 text-error" />
+                      <span className="absolute inset-0 rounded-full animate-ping" style={{border:'2px solid rgba(239,68,68,0.6)'}} />
+                    </div>
+                    <p className="text-white font-medium mb-2 flex items-center justify-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-error animate-pulse" />
+                      Recording… {String(Math.floor(recElapsed/60)).padStart(2,'0')}:{String(recElapsed%60).padStart(2,'0')}
+                    </p>
+                    {/* Simple pseudo-waveform indicator */}
+                    <div className="flex items-end justify-center gap-1 h-8 mb-4">
+                      {[0,1,2,3,4,5,6,7,8,9,10,11].map(i => (
+                        <span
+                          key={i}
+                          className="w-1 rounded-full bg-error"
+                          style={{
+                            height: `${20 + ((recElapsed + i) % 4) * 15}%`,
+                            transition: 'height 0.25s',
+                            opacity: 0.4 + ((recElapsed + i) % 4) * 0.15,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      onClick={stopRecording}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium"
+                      style={{background:'rgba(239,68,68,0.9)'}}
+                    >
+                      <Square className="w-4 h-4 fill-current" />
+                      Stop & Save
+                    </button>
+                  </div>
+                )}
+
+                {!recording && file && file.name?.startsWith('recording-') && (
+                  <div className="flex items-center gap-3 p-4 rounded-xl"
+                       style={{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)'}}>
+                    <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                      <p className="text-textMuted text-xs">{(file.size/1024/1024).toFixed(2)} MB · ready to analyze</p>
+                    </div>
+                    <button onClick={() => setFile(null)} className="text-textMuted hover:text-white" title="Discard recording">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
             {tab === 'zoom' && (

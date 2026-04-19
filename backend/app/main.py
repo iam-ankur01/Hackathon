@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .firebase import init_firebase
-from .routes import auth, users, interviews, jobs, progress
+from .routes import auth, users, interviews, jobs, progress, history
 
 app = FastAPI(
     title="Interview Evaluator API",
@@ -53,3 +53,4 @@ app.include_router(users.router)
 app.include_router(interviews.router)
 app.include_router(jobs.router)
 app.include_router(progress.router)
+app.include_router(history.router)

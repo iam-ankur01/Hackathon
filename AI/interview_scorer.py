@@ -92,6 +92,7 @@ class ScoringReport:
                 "candidate_word_count": self.candidate_word_count,
                 "interviewer_word_count": self.interviewer_word_count,
                 "diarization_confidence": round(self.diarization_confidence, 2),
+                "full_transcript": getattr(self, "full_transcript", ""),
             }
         }
 

@@ -77,3 +77,7 @@ export const saveRoadmapPreferences = (days) =>
   api.post('/api/roadmap/preferences', { days }).then(r => r.data);
 export const postCoachChat = ({ message, history }) =>
   api.post('/api/coach/chat', { message, history: history || [] }).then(r => r.data);
+
+// ── History ──
+export const listHistory = () => api.get('/api/history').then(r => r.data);
+export const deleteHistoryEntry = (id) => api.delete(`/api/history/${id}`).then(r => r.data);

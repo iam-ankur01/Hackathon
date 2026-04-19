@@ -48,6 +48,12 @@ def _evaluate_and_save(interview_id: str, user_id: str, local_path: str,
         except Exception:
             pass
         coaching = generate_coach_tips(report)
+        # Extract the full transcript so the History view can show / export it.
+        full_transcript = (
+            (report.get("metadata") or {}).get("full_transcript")
+            or transcript_text
+            or ""
+        )
         doc_ref.update({
             "status": "completed",
             "completed_at": datetime.utcnow().isoformat(),
@@ -55,6 +61,7 @@ def _evaluate_and_save(interview_id: str, user_id: str, local_path: str,
             "coaching": coaching,
             "total_score": report.get("total_score"),
             "grade": report.get("grade"),
+            "transcript_text_full": full_transcript,
         })
         # Update user's rolling hirescore (simple average of last 5)
         recent = [r.to_dict() for r in
@@ -86,8 +93,12 @@ async def submit_interview(
 
     local_path = None
     audio_url = None
+    original_filename = None
+    file_kind = None  # "audio" | "video" | "transcript"
+    ext = ""
     if file:
-        ext = os.path.splitext(file.filename or "")[1].lower()
+        original_filename = file.filename or ""
+        ext = os.path.splitext(original_filename)[1].lower()
         if ext not in ALLOWED_AUDIO_EXT:
             raise HTTPException(status_code=400, detail=f"Unsupported file type {ext}")
         os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -96,6 +107,15 @@ async def submit_interview(
         with open(local_path, "wb") as f:
             f.write(await file.read())
         audio_url = upload_file(local_path, dest_folder=f"interviews/{current['id']}")
+        if ext in (".mp4", ".webm"):
+            file_kind = "video"
+        elif ext in (".json", ".txt"):
+            file_kind = "transcript"
+        else:
+            file_kind = "audio"
+    elif transcript_text:
+        file_kind = "transcript"
+        original_filename = "typed-transcript.txt"
 
     db = get_db()
     doc_ref = db.collection("interviews").document()
@@ -108,6 +128,9 @@ async def submit_interview(
         "company_name": company_name,
         "audio_url": audio_url,
         "has_transcript_text": bool(transcript_text),
+        "original_filename": original_filename,
+        "file_kind": file_kind,
+        "file_ext": ext,
     })
 
     background.add_task(

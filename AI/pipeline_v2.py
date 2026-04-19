@@ -263,6 +263,13 @@ def evaluate_interview(
     elapsed = round(time.time() - start, 2)
     print(f"\n⏱  Total processing time: {elapsed:.1f}s")
 
+    # Attach the full transcript so downstream callers (backend) can persist
+    # it for the per-user history view.
+    try:
+        report.full_transcript = raw_transcript
+    except Exception:
+        pass
+
     return report
 
 

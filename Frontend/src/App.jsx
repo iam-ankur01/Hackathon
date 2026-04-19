@@ -11,6 +11,7 @@ import Roadmap from './pages/Roadmap';
 import Coach from './pages/Coach';
 import Progress from './pages/Progress';
 import JobMatches from './pages/JobMatches';
+import History from './pages/History';
 import { loadSession, clearSession } from './lib/api';
 
 function AppLayout({ children, user, onLogout }) {
@@ -62,6 +63,7 @@ function App() {
         <Route path="/coach" element={<AppLayout user={user} onLogout={handleLogout}><Coach user={user} /></AppLayout>} />
         <Route path="/progress" element={<AppLayout user={user} onLogout={handleLogout}><Progress user={user} /></AppLayout>} />
         <Route path="/jobs" element={<AppLayout user={user} onLogout={handleLogout}><JobMatches /></AppLayout>} />
+        <Route path="/history" element={<AppLayout user={user} onLogout={handleLogout}><History /></AppLayout>} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>

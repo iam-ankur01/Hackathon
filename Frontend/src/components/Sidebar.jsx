@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BarChart3, Map, MessageSquare, Trophy, Briefcase, User } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Map, MessageSquare, Trophy, Briefcase, User, History as HistoryIcon } from 'lucide-react';
 
 const links = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/results', icon: BarChart3, label: 'Analysis' },
   { to: '/roadmap', icon: Map, label: 'Roadmap' },
   { to: '/coach', icon: MessageSquare, label: 'AI Coach' },
+  { to: '/history', icon: HistoryIcon, label: 'History' },
   { to: '/progress', icon: Trophy, label: 'Progress' },
   { to: '/jobs', icon: Briefcase, label: 'Job Matches' },
   { to: '/profile', icon: User, label: 'Profile' },

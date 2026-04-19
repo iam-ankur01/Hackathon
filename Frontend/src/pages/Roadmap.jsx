@@ -1,105 +1,243 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Circle, ChevronRight, Map, Calendar, Target } from 'lucide-react';
-import { getRoadmap } from '../lib/api';
+import { CheckCircle2, Circle, Map, Calendar, Target, Sparkles } from 'lucide-react';
+import { getRoadmap, saveRoadmapPreferences, getMe } from '../lib/api';
 
-const _defaultPhases = [
-  { phase:'Week 1–2', label:'Quick Wins', color:'#22D3EE', tasks:[
-    { text:'Fix LinkedIn headline — remove "aspiring developer"', done:true },
-    { text:'Add README to top 3 GitHub repos', done:true },
-    { text:'Add quantifiable results to 3 resume bullet points', done:false },
-    { text:'Practice 5 STAR behavioral answers', done:false },
-  ]},
-  { phase:'Week 3–6', label:'Skill Building', color:'#6366F1', tasks:[
-    { text:'Study system design: CAP theorem, SQL vs NoSQL, caching', done:false },
-    { text:'Complete 20 LeetCode medium problems (focus: arrays, trees)', done:false },
-    { text:'Record and review 3 mock interviews using HireSight', done:false },
-    { text:'Build one full-stack project relevant to target role', done:false },
-    { text:'Reduce filler words to under 1.5/min (daily practice)', done:false },
-  ]},
-  { phase:'Week 7–12', label:'Application Push', color:'#8B5CF6', tasks:[
-    { text:'Apply to 5 target roles per week', done:false },
-    { text:'Personalize resume for each JD — use ATS keywords', done:false },
-    { text:'Request LinkedIn recommendations from 2 people', done:false },
-    { text:'Re-analyze each failed interview with PostMortem mode', done:false },
-    { text:'Reach HireScore of 78+ before bulk applying', done:false },
-  ]},
-];
+const PHASE_COLORS = ['#22D3EE', '#6366F1', '#8B5CF6', '#F59E0B', '#10B981', '#EC4899'];
+
+const chunkByWeek = (days) => {
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+  return weeks;
+};
 
 const Roadmap = () => {
-  const [phases, setPhases] = useState(_defaultPhases);
-  const [focus, setFocus] = useState('');
-  const [tasks, setTasks] = useState(_defaultPhases.map(p=>p.tasks));
+  const [days, setDays] = useState(30);
+  const [pendingDays, setPendingDays] = useState(30);
+  const [plan, setPlan] = useState(null);
+  const [taskStates, setTaskStates] = useState({}); // { "day-taskIdx": true }
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  const loadRoadmap = (d) => {
+    setLoading(true);
+    setError('');
+    getRoadmap(d)
+      .then((r) => {
+        setPlan(r);
+        if (r.days_requested) setDays(r.days_requested);
+      })
+      .catch(() => setError('Could not load your roadmap. Try again.'))
+      .finally(() => setLoading(false));
+  };
+
+  // On mount: read saved preference, then fetch roadmap.
   useEffect(() => {
-    getRoadmap().then((r) => {
-      setFocus(r.focus_area || '');
-      // Wrap backend weekly plan as phase 1, keep the rest of default phases
-      if (r.plan && r.plan.length) {
-        const aiPhase = {
-          phase: `Personalized (${r.focus_area || 'focus'})`,
-          label: 'AI-Recommended Focus',
-          color: '#22D3EE',
-          tasks: r.plan.map(p => ({ text: `Week ${p.week}: ${p.goal}`, done: false })),
-        };
-        const merged = [aiPhase, ..._defaultPhases];
-        setPhases(merged);
-        setTasks(merged.map(p => p.tasks));
-      }
-    }).catch(() => {});
+    getMe()
+      .then((u) => {
+        const saved = u?.roadmap_days && Number(u.roadmap_days) > 0 ? Number(u.roadmap_days) : 30;
+        setDays(saved);
+        setPendingDays(saved);
+        loadRoadmap(saved);
+      })
+      .catch(() => loadRoadmap(30));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
-  const toggle = (pi, ti) => {
-    const updated = tasks.map((t,i)=>i===pi?t.map((task,j)=>j===ti?{...task,done:!task.done}:task):t);
-    setTasks(updated);
+  const handleGenerate = async () => {
+    const n = Math.max(1, Math.min(180, parseInt(pendingDays, 10) || 30));
+    setPendingDays(n);
+    try {
+      await saveRoadmapPreferences(n);
+    } catch {
+      // non-fatal: still attempt to render the plan
+    }
+    setTaskStates({});
+    loadRoadmap(n);
   };
-  const total = tasks.flat().length;
-  const done = tasks.flat().filter(t=>t.done).length;
+
+  const toggle = (dayNum, taskIdx) => {
+    const key = `${dayNum}-${taskIdx}`;
+    setTaskStates((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const planDays = plan?.days || [];
+  const allTasks = planDays.flatMap((d, di) => (d.tasks || []).map((_, ti) => `${d.day}-${ti}`));
+  const doneCount = allTasks.filter((k) => taskStates[k]).length;
+  const totalTasks = allTasks.length;
+  const weeks = chunkByWeek(planDays);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display font-bold text-2xl text-white mb-1 flex items-center gap-2"><Map className="w-5 h-5 text-primary" />Your 90-Day Roadmap</h1>
-          <p className="text-textMuted text-sm">Personalized based on your interview analysis and HireScore gaps</p>
+          <h1 className="font-display font-bold text-2xl text-white mb-1 flex items-center gap-2">
+            <Map className="w-5 h-5 text-primary" />Your Personalized Roadmap
+          </h1>
+          <p className="text-textMuted text-sm">
+            Aligned with the weaknesses from your latest interview analysis.
+          </p>
         </div>
-        <div className="text-right">
-          <p className="text-3xl font-display font-bold text-white">{done}<span className="text-textMuted text-lg">/{total}</span></p>
-          <p className="text-xs text-textMuted">tasks complete</p>
-        </div>
+        {totalTasks > 0 && (
+          <div className="text-right">
+            <p className="text-3xl font-display font-bold text-white">
+              {doneCount}<span className="text-textMuted text-lg">/{totalTasks}</span>
+            </p>
+            <p className="text-xs text-textMuted">tasks complete</p>
+          </div>
+        )}
       </div>
 
+      {/* Days-to-prepare prompt */}
       <div className="card">
-        <div className="flex justify-between text-xs text-textMuted mb-2">
-          <span>Overall Progress</span><span>{Math.round(done/total*100)}%</span>
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{background:'linear-gradient(135deg,#6366F1,#22D3EE)'}}>
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-white font-semibold">
+              How many days do you want to prepare for your next interview?
+            </p>
+            <p className="text-textMuted text-xs mt-1">
+              Your plan will be distributed across that many days, ramping from diagnostics
+              to mock practice. Range: 1–180.
+            </p>
+          </div>
         </div>
-        <div className="progress-bar h-2"><div className="progress-fill" style={{width:`${done/total*100}%`}} /></div>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={180}
+            value={pendingDays}
+            onChange={(e) => setPendingDays(e.target.value)}
+            className="w-28 bg-transparent outline-none text-white text-sm px-3 py-2 rounded-lg"
+            style={{background:'rgba(15,22,40,0.9)',border:'1px solid rgba(255,255,255,0.08)'}}
+          />
+          <span className="text-textMuted text-sm">days</span>
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="ml-auto px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-60"
+            style={{background:'linear-gradient(135deg,#6366F1,#8B5CF6)'}}
+          >
+            {loading ? 'Generating…' : 'Generate Roadmap'}
+          </button>
+        </div>
+        {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
       </div>
 
+      {/* Plan summary */}
+      {plan && (plan.primary_focus || plan.summary) && (
+        <div className="card flex items-start gap-3">
+          <Target className="w-5 h-5 text-primary-light flex-shrink-0 mt-0.5" />
+          <div>
+            {plan.primary_focus && (
+              <p className="text-white text-sm font-semibold">
+                Primary focus: <span className="text-primary-light">{plan.primary_focus}</span>
+              </p>
+            )}
+            {plan.summary && <p className="text-textMuted text-sm mt-1">{plan.summary}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Overall progress bar */}
+      {totalTasks > 0 && (
+        <div className="card">
+          <div className="flex justify-between text-xs text-textMuted mb-2">
+            <span>Overall Progress</span>
+            <span>{Math.round((doneCount / totalTasks) * 100)}%</span>
+          </div>
+          <div className="progress-bar h-2">
+            <div className="progress-fill" style={{ width: `${(doneCount / totalTasks) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && planDays.length === 0 && (
+        <div className="card text-center py-10">
+          <p className="text-textMuted text-sm">
+            {plan?.summary || 'No roadmap yet. Complete an interview and click Generate.'}
+          </p>
+        </div>
+      )}
+
+      {/* Weekly groups */}
       <div className="space-y-5">
-        {phases.map((ph, pi) => {
-          const pDone = tasks[pi].filter(t=>t.done).length;
+        {weeks.map((weekDays, wi) => {
+          const color = PHASE_COLORS[wi % PHASE_COLORS.length];
+          const weekDone = weekDays.reduce((acc, d) => {
+            const taskCount = (d.tasks || []).length;
+            const doneInDay = (d.tasks || []).filter((_, ti) => taskStates[`${d.day}-${ti}`]).length;
+            return { total: acc.total + taskCount, done: acc.done + doneInDay };
+          }, { total: 0, done: 0 });
+
           return (
-            <motion.div key={pi} initial={{opacity:0,y:15}} animate={{opacity:1,y:0}} transition={{delay:pi*0.1}} className="card">
+            <motion.div
+              key={wi}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: wi * 0.08 }}
+              className="card"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-white text-sm" style={{background:`${ph.color}20`,border:`1px solid ${ph.color}40`,color:ph.color}}>{pi+1}</div>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-sm"
+                    style={{ background: `${color}20`, border: `1px solid ${color}40`, color }}
+                  >
+                    W{wi + 1}
+                  </div>
                   <div>
-                    <p className="text-white font-semibold">{ph.label}</p>
-                    <p className="text-textMuted text-xs flex items-center gap-1"><Calendar className="w-3 h-3" />{ph.phase}</p>
+                    <p className="text-white font-semibold">Week {wi + 1}</p>
+                    <p className="text-textMuted text-xs flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Day {weekDays[0].day}–{weekDays[weekDays.length - 1].day}
+                    </p>
                   </div>
                 </div>
-                <span className="text-xs font-semibold" style={{color:ph.color}}>{pDone}/{tasks[pi].length} done</span>
+                <span className="text-xs font-semibold" style={{ color }}>
+                  {weekDone.done}/{weekDone.total} done
+                </span>
               </div>
-              <div className="space-y-2">
-                {tasks[pi].map((task, ti) => (
-                  <button key={ti} onClick={()=>toggle(pi,ti)} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/3 transition-all text-left group">
-                    {task.done
-                      ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{color:ph.color}} />
-                      : <Circle className="w-5 h-5 text-textMuted flex-shrink-0 group-hover:text-white transition-colors" />}
-                    <span className={`text-sm ${task.done?'text-textMuted line-through':'text-textMain'}`}>{task.text}</span>
-                  </button>
+
+              <div className="space-y-3">
+                {weekDays.map((d) => (
+                  <div key={d.day} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-white text-sm font-medium">
+                        Day {d.day} — <span className="text-textMuted">{d.focus_area}</span>
+                      </p>
+                      {d.time_estimate_minutes ? (
+                        <span className="text-[11px] text-textMuted">{d.time_estimate_minutes} min</span>
+                      ) : null}
+                    </div>
+                    <div className="space-y-1.5">
+                      {(d.tasks || []).map((task, ti) => {
+                        const key = `${d.day}-${ti}`;
+                        const isDone = !!taskStates[key];
+                        return (
+                          <button
+                            key={ti}
+                            onClick={() => toggle(d.day, ti)}
+                            className="w-full flex items-start gap-2 p-2 rounded-lg hover:bg-white/3 transition-all text-left"
+                          >
+                            {isDone
+                              ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color }} />
+                              : <Circle className="w-4 h-4 flex-shrink-0 mt-0.5 text-textMuted" />}
+                            <span className={`text-xs leading-relaxed ${isDone ? 'text-textMuted line-through' : 'text-textMain'}`}>
+                              {task}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
             </motion.div>
@@ -109,4 +247,5 @@ const Roadmap = () => {
     </div>
   );
 };
+
 export default Roadmap;

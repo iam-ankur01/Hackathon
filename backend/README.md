@@ -37,10 +37,26 @@ python run.py
 | GET    | `/api/dashboard`              | Dashboard summary                            |
 | GET    | `/api/progress`               | Score-over-time + category averages          |
 | GET    | `/api/jobs`                   | Job matches (scored vs. user's skills)       |
-| GET    | `/api/roadmap`                | Personalized prep roadmap                    |
+| GET    | `/api/roadmap?days=N`         | Personalized N-day prep roadmap (1–180)      |
+| POST   | `/api/roadmap/preferences`    | Save preferred roadmap duration              |
 | GET    | `/api/coach`                  | Coaching tips from latest interview          |
+| POST   | `/api/coach/chat`             | Grounded chat with the AI coach (Groq Llama) |
 
 All authenticated endpoints require `Authorization: Bearer <token>`.
+
+## Analysis flow (Groq-powered)
+
+When a user uploads a video/audio file, the pipeline runs in two phases:
+
+1. **Transcription (Groq Whisper `whisper-large-v3`)** — `AI/transcriber.py`
+   converts the media to text with word-level timestamps.
+2. **Analysis (Groq Llama `llama-3.3-70b-versatile`)** — `AI/speaker_diarizer.py`
+   and `AI/interview_scorer.py` split speakers, score the interview on a
+   100-point rubric, and emit structured insights.
+
+The same Groq Llama model also powers the dynamic roadmap generator
+(`/api/roadmap`) and the AI Coach chat (`/api/coach/chat`), both grounded
+strictly in the latest interview report.
 
 ## Firestore collections
 

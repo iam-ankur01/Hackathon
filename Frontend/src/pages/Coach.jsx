@@ -1,23 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { getCoach } from '../lib/api';
+import { getCoach, postCoachChat } from '../lib/api';
 
 const initialMessages = [
   { role:'ai', text:"Hi! I'm Max, your AI career coach. Loading your latest interview insights…" },
 ];
 
 const suggestions = ['Practice STAR method with me','How do I reduce filler words?','Review my system design gaps','What jobs should I apply to now?','Fix my LinkedIn headline'];
-
-const autoReply = (msg) => {
-  const m = msg.toLowerCase();
-  if (m.includes('star')) return "Great choice! Let's practice. Tell me about a project where you solved a difficult problem — and make sure you end with a specific number: impact, time saved, or percentage improvement. Go ahead!";
-  if (m.includes('filler') || m.includes('um')) return "Filler words are a confidence signal. The fix is simple: replace every 'um' with a deliberate 1-second pause. It sounds more confident, not less. Try this: record yourself answering 'Tell me about yourself' and count your fillers. How many do you think you have?";
-  if (m.includes('system design') || m.includes('technical')) return "Your technical score is 55/100. For system design, focus on three areas this week: (1) CAP theorem — can you explain consistency vs availability in simple terms? (2) Database trade-offs — when SQL vs NoSQL? (3) Caching — why and when? Want me to quiz you on any of these?";
-  if (m.includes('linkedin')) return `Your current headline likely says something generic. Here's a stronger formula: [Role] | [Key Skill] | [One achievement or interest]. Example: 'Software Engineer | React & Python | Built ML tools for 10K+ users'. Want me to write yours?`;
-  if (m.includes('job') || m.includes('apply')) return "Based on your HireScore of 61, you're a strong fit for roles at mid-size companies and service firms (TCS, Wipro, Capgemini). Your reach targets are product companies. I'd hold on bulk applying until your HireScore hits 72+. Want to see your specific job matches?";
-  return "That's a great question. Based on your profile and recent interview, I'd focus on the areas flagged in your debrief first — particularly your STAR answers and technical explanations. What specific part would you like to work on together?";
-};
 
 const Coach = ({ user }) => {
   const [messages, setMessages] = useState(initialMessages);
@@ -43,16 +33,28 @@ const Coach = ({ user }) => {
     }).catch(() => {});
   }, []);
 
-  const send = (text) => {
-    const msg = text || input.trim();
-    if (!msg) return;
+  const send = async (text) => {
+    const msg = (text || input).trim();
+    if (!msg || typing) return;
     setInput('');
-    setMessages(prev=>[...prev,{role:'user',text:msg}]);
+    // Snapshot history BEFORE appending the new user message so the server sees
+    // the prior conversation, then the current message as the final turn.
+    const historyForServer = messages
+      .filter(m => m && m.text)
+      .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+    setMessages(prev => [...prev, { role: 'user', text: msg }]);
     setTyping(true);
-    setTimeout(()=>{
+    try {
+      const { reply } = await postCoachChat({ message: msg, history: historyForServer });
+      setMessages(prev => [...prev, { role: 'ai', text: reply || "I'm not sure how to answer that — can you rephrase?" }]);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        text: "I couldn't reach the coach service. Check your connection and try again.",
+      }]);
+    } finally {
       setTyping(false);
-      setMessages(prev=>[...prev,{role:'ai',text:autoReply(msg)}]);
-    }, 1200);
+    }
   };
 
   return (
@@ -76,7 +78,13 @@ const Coach = ({ user }) => {
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${m.role==='ai'?'bg-primary/20':'bg-white/8'}`}>
                 {m.role==='ai' ? <Sparkles className="w-4 h-4 text-primary-light" /> : <User className="w-4 h-4 text-textMuted" />}
               </div>
-              <div className={`max-w-lg px-4 py-3 rounded-2xl text-sm leading-relaxed ${m.role==='ai'?'bg-surfaceHigh text-textMain':'text-white'}`} style={m.role==='user'?{background:'linear-gradient(135deg,#6366F1,#8B5CF6)'}:{}}>
+              <div
+                className={`max-w-lg px-4 py-3 rounded-2xl text-sm leading-relaxed ${m.role==='ai'?'bg-surfaceHigh text-textMain':'text-white'}`}
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  ...(m.role==='user'?{background:'linear-gradient(135deg,#6366F1,#8B5CF6)'}:{}),
+                }}
+              >
                 {m.text}
               </div>
             </motion.div>

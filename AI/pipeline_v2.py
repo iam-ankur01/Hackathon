@@ -2,12 +2,23 @@
 pipeline_v2.py
 Full Interview Evaluation Pipeline — v2
 
-End-to-end flow:
+Two-phase flow (both phases run on Groq's free tier):
+
+  Step 1 — TRANSCRIPTION (Groq Whisper)
+      transcribe() in transcriber.py calls `whisper-large-v3` to turn the
+      uploaded audio/video into text with word-level timestamps.
+
+  Step 2 — ANALYSIS (Groq Llama)
+      diarize() + score_interview() call `llama-3.3-70b-versatile` to split
+      interviewer vs candidate speech, then score the interview on a 100-point
+      rubric and emit structured insights (strengths, improvements, summary).
+
+Pipeline steps in detail:
   1. Parse candidate profile (resume, GitHub, LinkedIn)
-  2. Transcribe interview audio/video
-  3. Diarize speakers (interviewer vs candidate)
-  4. Run rule engine on candidate-only speech
-  5. Score interview using 30/40/20/10 rubric
+  2. [Step 1] Transcribe interview audio/video via Groq Whisper
+  3. [Step 2] Diarize speakers via Groq Llama
+  4. Run rule engine on candidate-only speech (pure Python)
+  5. [Step 2] Score interview via Groq Llama using 30/40/20/10 rubric
   6. Generate structured report out of 100
 
 Usage:

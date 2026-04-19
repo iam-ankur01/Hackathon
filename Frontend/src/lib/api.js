@@ -71,4 +71,9 @@ export const getDashboard = () => api.get('/api/dashboard').then(r => r.data);
 export const getProgress = () => api.get('/api/progress').then(r => r.data);
 export const getJobs = () => api.get('/api/jobs').then(r => r.data);
 export const getCoach = () => api.get('/api/coach').then(r => r.data);
-export const getRoadmap = () => api.get('/api/roadmap').then(r => r.data);
+export const getRoadmap = (days) =>
+  api.get('/api/roadmap', { params: days ? { days } : {} }).then(r => r.data);
+export const saveRoadmapPreferences = (days) =>
+  api.post('/api/roadmap/preferences', { days }).then(r => r.data);
+export const postCoachChat = ({ message, history }) =>
+  api.post('/api/coach/chat', { message, history: history || [] }).then(r => r.data);

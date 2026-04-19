@@ -1,11 +1,36 @@
 """Job matches + roadmap routes."""
-from typing import List
-from fastapi import APIRouter, Depends
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 
 from ..firebase import get_db
 from ..security import get_current_user
+from ..services.ai_service import generate_roadmap, coach_chat
 
 router = APIRouter(prefix="/api", tags=["jobs"])
+
+
+class RoadmapPreferences(BaseModel):
+    days: int = Field(..., ge=1, le=180)
+
+
+class CoachChatTurn(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
+class CoachChatRequest(BaseModel):
+    message: str
+    history: List[CoachChatTurn] = []
+
+
+def _latest_completed_interview(db, user_id: str):
+    """Fetch the (id, data) of the user's most recent completed interview, or None."""
+    rows = [(d.id, d.to_dict()) for d in
+            db.collection("interviews").where("user_id", "==", user_id).stream()]
+    rows = [x for x in rows if (x[1] or {}).get("status") == "completed"]
+    rows.sort(key=lambda x: (x[1] or {}).get("completed_at") or "", reverse=True)
+    return rows[0] if rows else None
 
 
 _SEED_JOBS = [
@@ -51,66 +76,54 @@ def list_jobs(current=Depends(get_current_user)):
 
 
 @router.get("/roadmap")
-def roadmap(current=Depends(get_current_user)):
-    """Personalized prep roadmap based on weakest category in latest report."""
+def roadmap(
+    days: Optional[int] = Query(None, ge=1, le=180),
+    current=Depends(get_current_user),
+):
+    """Personalized day-by-day prep roadmap.
+
+    Uses the `days` query param, falling back to the user's saved `roadmap_days`,
+    then defaulting to 30. Generates the plan from the latest completed interview's
+    weakest categories via Groq Llama 3.3 70B (with a deterministic fallback).
+    """
     db = get_db()
-    _all = [(d.id, d.to_dict()) for d in
-            db.collection("interviews").where("user_id", "==", current["id"]).stream()]
-    _all = [x for x in _all if (x[1] or {}).get("status") == "completed"]
-    _all.sort(key=lambda x: (x[1] or {}).get("completed_at") or "", reverse=True)
-    latest = _all[:1]
+    latest = _latest_completed_interview(db, current["id"])
+    if not latest:
+        return {
+            "days_requested": days or current.get("roadmap_days") or 30,
+            "primary_focus": None,
+            "summary": "Complete your first interview to unlock a personalized roadmap.",
+            "days": [],
+        }
 
-    weak_area = "answer_quality"
-    if latest:
-        cb = (latest[0][1] or {}).get("report", {}).get("category_breakdown", {})
-        worst = None
-        worst_pct = 1.0
-        for key, val in cb.items():
-            if isinstance(val, dict) and val.get("max"):
-                pct = val["score"] / val["max"]
-                if pct < worst_pct:
-                    worst_pct = pct
-                    worst = key
-        if worst:
-            weak_area = worst
+    effective_days = days or current.get("roadmap_days") or 30
+    effective_days = max(1, min(int(effective_days), 180))
 
-    roadmaps = {
-        "public_speaking": [
-            {"week": 1, "goal": "Record 5-min daily answers; review pacing."},
-            {"week": 2, "goal": "Practice tone variation drills."},
-            {"week": 3, "goal": "Mock interview with a peer, focus on confidence."},
-        ],
-        "answer_quality": [
-            {"week": 1, "goal": "Master STAR method with 10 past examples."},
-            {"week": 2, "goal": "Deep-dive one system design topic per day."},
-            {"week": 3, "goal": "Tailor answers to your top 3 target JDs."},
-        ],
-        "consistency_truthfulness": [
-            {"week": 1, "goal": "Rewrite resume bullets with metrics + tech stack."},
-            {"week": 2, "goal": "Populate GitHub READMEs for all pinned repos."},
-            {"week": 3, "goal": "Align LinkedIn experience with resume."},
-        ],
-        "filler_word_assessment": [
-            {"week": 1, "goal": "2-min daily silent pause practice."},
-            {"week": 2, "goal": "Read aloud 10 min/day; mark fillers in transcript."},
-            {"week": 3, "goal": "Record mock; target < 2 fillers/min."},
-        ],
-    }
-    return {"focus_area": weak_area, "plan": roadmaps.get(weak_area, roadmaps["answer_quality"])}
+    report = (latest[1] or {}).get("report", {}) or {}
+    plan = generate_roadmap(report, effective_days)
+    plan["days_requested"] = effective_days
+    return plan
+
+
+@router.post("/roadmap/preferences")
+def save_roadmap_preferences(
+    prefs: RoadmapPreferences,
+    current=Depends(get_current_user),
+):
+    """Persist the user's preferred roadmap duration on their user doc."""
+    db = get_db()
+    db.collection("users").document(current["id"]).update({"roadmap_days": prefs.days})
+    return {"roadmap_days": prefs.days}
 
 
 @router.get("/coach")
 def coach(current=Depends(get_current_user)):
     """Return coaching tips derived from latest interview."""
     db = get_db()
-    _all = [(d.id, d.to_dict()) for d in
-            db.collection("interviews").where("user_id", "==", current["id"]).stream()]
-    _all = [x for x in _all if (x[1] or {}).get("status") == "completed"]
-    _all.sort(key=lambda x: (x[1] or {}).get("completed_at") or "", reverse=True)
-    latest = _all[:1]
+    latest = _latest_completed_interview(db, current["id"])
     if not latest:
         return {"tips": [], "message": "Complete your first interview to unlock personalized coaching."}
-    interview_id, data = latest[0]
+    interview_id, data = latest
     return {
         "interview_id": interview_id,
         "total_score": data.get("total_score"),
@@ -118,3 +131,19 @@ def coach(current=Depends(get_current_user)):
         "coaching": data.get("coaching", {}),
         "report_summary": data.get("report", {}).get("executive_summary", ""),
     }
+
+
+@router.post("/coach/chat")
+def coach_chat_endpoint(
+    body: CoachChatRequest,
+    current=Depends(get_current_user),
+):
+    """Grounded chat with the AI coach. Reply is based strictly on the latest report."""
+    db = get_db()
+    latest = _latest_completed_interview(db, current["id"])
+    if not latest:
+        return {"reply": "Complete your first interview so I can coach you with real data."}
+    report = (latest[1] or {}).get("report", {}) or {}
+    history = [t.model_dump() for t in body.history]
+    reply = coach_chat(report, history, body.message)
+    return {"reply": reply}

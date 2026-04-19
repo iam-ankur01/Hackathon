@@ -47,12 +47,12 @@ const JobMatches = () => {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-display font-bold text-2xl text-white flex items-center gap-2 mb-1"><Briefcase className="w-5 h-5 text-primary" />Job Matches</h1>
+          <h1 className="font-display font-bold text-2xl text-textMain flex items-center gap-2 mb-1"><Briefcase className="w-5 h-5 text-primary" />Job Matches</h1>
           <p className="text-textMuted text-sm">Calibrated to your HireScore of 61 — sorted by your actual match probability</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {[['all','All'],['apply','Apply Now'],['reach','Reach'],['dream','Dream']].map(([v,l])=>(
-            <button key={v} onClick={()=>setFilter(v)} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${filter===v?'bg-primary text-white':'text-textMuted border border-white/10 hover:border-primary/30 hover:text-white'}`}>{l}</button>
+            <button key={v} onClick={()=>setFilter(v)} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${filter===v?'bg-primary text-white':'text-textMuted border border-black/10 hover:border-primary/40 hover:text-textMain'}`}>{l}</button>
           ))}
         </div>
       </div>
@@ -74,16 +74,16 @@ const JobMatches = () => {
             <motion.div key={i} initial={{opacity:0,y:15}} animate={{opacity:1,y:0}} transition={{delay:i*0.07}} className="card-hover p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex gap-4 items-start flex-1 min-w-0">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center font-display font-bold text-lg flex-shrink-0 text-white" style={{background:'rgba(99,102,241,0.15)',border:'1px solid rgba(99,102,241,0.2)'}}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center font-display font-bold text-lg flex-shrink-0 text-primary" style={{background:'rgba(99,102,241,0.15)',border:'1px solid rgba(99,102,241,0.2)'}}>
                     {job.company.charAt(0)}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-white font-semibold truncate">{job.title}</h3>
+                    <h3 className="text-textMain font-semibold truncate">{job.title}</h3>
                     <p className="text-textMuted text-sm">{job.company}</p>
                     <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-textMuted">
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{job.posted}</span>
-                      <span className="font-medium text-white/70">{job.salary}</span>
+                      <span className="font-medium text-textMain/70">{job.salary}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {job.skills.map((s,si)=><span key={si} className="tag text-xs">{s}</span>)}
@@ -93,7 +93,7 @@ const JobMatches = () => {
 
                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                   <div className="text-right">
-                    <p className="font-display font-bold text-2xl text-white">{job.match}<span className="text-sm text-textMuted">%</span></p>
+                    <p className="font-display font-bold text-2xl text-textMain">{job.match}<span className="text-sm text-textMuted">%</span></p>
                     <p className="text-textMuted text-xs">match</p>
                   </div>
                   <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:cfg.bg,color:cfg.color,border:`1px solid ${cfg.border}`}}>{cfg.label}</span>
@@ -118,7 +118,7 @@ const JobMatches = () => {
 
       <div className="card text-center py-8" style={{border:'1px dashed rgba(99,102,241,0.2)'}}>
         <TrendingUp className="w-8 h-8 text-primary mx-auto mb-3" />
-        <p className="text-white font-semibold mb-1">Improve your HireScore to unlock more roles</p>
+        <p className="text-textMain font-semibold mb-1">Improve your HireScore to unlock more roles</p>
         <p className="text-textMuted text-sm">At 78+ you qualify for 3× more dream roles. Complete your roadmap to get there.</p>
       </div>
     </div>

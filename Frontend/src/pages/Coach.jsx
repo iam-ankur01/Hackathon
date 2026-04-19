@@ -60,12 +60,12 @@ const Coach = ({ user }) => {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3">
+      <div className="px-6 py-4 border-b border-black/5 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#6366F1,#22D3EE)'}}>
           <Bot className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h2 className="font-display font-semibold text-white">Max — Your AI Coach</h2>
+          <h2 className="font-display font-semibold text-textMain">Max — Your AI Coach</h2>
           <p className="text-xs text-success flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />Online · Knows your full profile</p>
         </div>
       </div>
@@ -75,7 +75,7 @@ const Coach = ({ user }) => {
         <AnimatePresence initial={false}>
           {messages.map((m,i)=>(
             <motion.div key={i} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className={`flex gap-3 ${m.role==='user'?'flex-row-reverse':''}`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${m.role==='ai'?'bg-primary/20':'bg-white/8'}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${m.role==='ai'?'bg-primary/20':'bg-surfaceHigh'}`}>
                 {m.role==='ai' ? <Sparkles className="w-4 h-4 text-primary-light" /> : <User className="w-4 h-4 text-textMuted" />}
               </div>
               <div
@@ -104,7 +104,7 @@ const Coach = ({ user }) => {
       {/* Suggestions */}
       <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-none">
         {suggestions.map((s,i)=>(
-          <button key={i} onClick={()=>send(s)} className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-white/10 text-textMuted hover:text-white hover:border-primary/40 transition-all">
+          <button key={i} onClick={()=>send(s)} className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-black/10 text-textMuted hover:text-primary hover:border-primary/40 hover:bg-surfaceHigh transition-all">
             {s}
           </button>
         ))}
@@ -112,7 +112,7 @@ const Coach = ({ user }) => {
 
       {/* Input */}
       <div className="px-4 pb-4">
-        <div className="flex gap-2 p-2 rounded-xl" style={{background:'rgba(15,22,40,0.9)',border:'1px solid rgba(255,255,255,0.08)'}}>
+        <div className="flex gap-2 p-2 rounded-xl" style={{background:'#ffffff',border:'1px solid rgba(10,10,10,0.12)',boxShadow:'0 1px 2px rgba(10,10,10,0.03)'}}>
           <input className="flex-1 bg-transparent outline-none text-sm text-textMain placeholder-textMuted px-2" placeholder="Ask Max anything about your interview or career..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} />
           <button onClick={()=>send()} className="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" style={{background:'linear-gradient(135deg,#6366F1,#8B5CF6)'}}>
             <Send className="w-4 h-4" />

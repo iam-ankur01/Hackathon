@@ -52,7 +52,7 @@ const Progress = ({ user }) => {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <h1 className="font-display font-bold text-2xl text-white flex items-center gap-2"><Trophy className="w-5 h-5 text-warning" />Progress Tracker</h1>
+      <h1 className="font-display font-bold text-2xl text-textMain flex items-center gap-2"><Trophy className="w-5 h-5 text-warning" />Progress Tracker</h1>
 
       {/* Top stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -67,7 +67,7 @@ const Progress = ({ user }) => {
               <s.icon className="w-5 h-5" style={{color:s.color}} />
             </div>
             <div>
-              <p className="font-display font-bold text-white text-lg leading-tight">{s.val}</p>
+              <p className="font-display font-bold text-textMain text-lg leading-tight">{s.val}</p>
               <p className="text-textMuted text-xs">{s.label}</p>
             </div>
           </motion.div>
@@ -78,17 +78,17 @@ const Progress = ({ user }) => {
       <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="card">
         <div className="flex justify-between items-center mb-3">
           <div>
-            <p className="text-white font-semibold">Level {currentLevel+1}: <span className="text-primary-light">{levels[currentLevel]}</span></p>
+            <p className="text-textMain font-semibold">Level {currentLevel+1}: <span className="text-primary">{levels[currentLevel]}</span></p>
             <p className="text-textMuted text-xs">{nextLevel - xp} XP to next level — <span className="text-warning font-medium">{levels[currentLevel+1]}</span></p>
           </div>
-          <span className="font-display font-bold text-white text-xl">{xp} <span className="text-textMuted text-sm font-normal">/ {nextLevel} XP</span></span>
+          <span className="font-display font-bold text-textMain text-xl">{xp} <span className="text-textMuted text-sm font-normal">/ {nextLevel} XP</span></span>
         </div>
         <div className="progress-bar h-3"><div className="progress-fill" style={{width:`${xp/nextLevel*100}%`}} /></div>
         <div className="flex justify-between mt-3">
           {levels.map((l,i)=>(
             <div key={i} className="flex flex-col items-center gap-1">
-              <div className={`w-3 h-3 rounded-full ${i<=currentLevel?'bg-primary':'bg-white/10'}`} />
-              <span className={`text-xs hidden sm:block ${i<=currentLevel?'text-primary-light':'text-textMuted'}`}>{l.split(' ')[0]}</span>
+              <div className={`w-3 h-3 rounded-full ${i<=currentLevel?'bg-primary':'bg-black/10'}`} />
+              <span className={`text-xs hidden sm:block ${i<=currentLevel?'text-primary':'text-textMuted'}`}>{l.split(' ')[0]}</span>
             </div>
           ))}
         </div>
@@ -97,7 +97,7 @@ const Progress = ({ user }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* HireScore chart */}
         <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="card">
-          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Score Over Time</h3>
+          <h3 className="font-semibold text-textMain mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Score Over Time</h3>
           <div className="flex items-end gap-2 h-36">
             {(series.length ? series : weeklyData).map((d,i,arr)=>{
               const height = Math.max(8, (d.score / 100) * 100);
@@ -114,13 +114,13 @@ const Progress = ({ user }) => {
 
         {/* Activity log */}
         <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.15}} className="card">
-          <h3 className="font-semibold text-white mb-4 flex items-center gap-2"><Zap className="w-4 h-4 text-accent" />Recent Activity</h3>
+          <h3 className="font-semibold text-textMain mb-4 flex items-center gap-2"><Zap className="w-4 h-4 text-accent" />Recent Activity</h3>
           <div className="space-y-3">
             {activityLog.map((a,i)=>(
               <div key={i} className="flex items-center gap-3">
                 <span className="text-lg flex-shrink-0">{a.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm truncate">{a.action}</p>
+                  <p className="text-textMain text-sm truncate">{a.action}</p>
                   <p className="text-textMuted text-xs">{a.time}</p>
                 </div>
                 <span className="text-xs font-semibold text-success flex-shrink-0">{a.xp}</span>
@@ -132,12 +132,12 @@ const Progress = ({ user }) => {
 
       {/* Badges */}
       <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.2}} className="card">
-        <h3 className="font-semibold text-white mb-5 flex items-center gap-2"><Trophy className="w-4 h-4 text-warning" />Badges</h3>
+        <h3 className="font-semibold text-textMain mb-5 flex items-center gap-2"><Trophy className="w-4 h-4 text-warning" />Badges</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {badges.map((b,i)=>(
-            <div key={i} className={`flex flex-col items-center text-center p-4 rounded-xl transition-all ${b.earned?'':'opacity-40'}`} style={{background:b.earned?'rgba(99,102,241,0.08)':'rgba(255,255,255,0.03)',border:`1px solid ${b.earned?'rgba(99,102,241,0.25)':'rgba(255,255,255,0.05)'}`}}>
+            <div key={i} className={`flex flex-col items-center text-center p-4 rounded-xl transition-all ${b.earned?'':'opacity-40'}`} style={{background:b.earned?'rgba(99,102,241,0.08)':'rgba(10,10,10,0.03)',border:`1px solid ${b.earned?'rgba(99,102,241,0.25)':'rgba(10,10,10,0.07)'}`}}>
               <span className="text-3xl mb-2">{b.earned ? b.icon : '🔒'}</span>
-              <p className="text-white text-xs font-semibold mb-0.5">{b.title}</p>
+              <p className="text-textMain text-xs font-semibold mb-0.5">{b.title}</p>
               <p className="text-textMuted text-xs leading-tight mb-2">{b.desc}</p>
               <span className={`text-xs font-bold ${b.earned?'text-warning':'text-textMuted'}`}>+{b.xp} XP</span>
             </div>

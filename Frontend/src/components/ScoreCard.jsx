@@ -4,7 +4,7 @@ const ScoreCard = ({ title, score, icon: Icon, color }) => (
       <Icon className="w-5 h-5" style={{color}} />
     </div>
     <div>
-      <p className="font-display font-bold text-white text-2xl">{score}</p>
+      <p className="font-display font-bold text-textMain text-2xl">{score}</p>
       <p className="text-textMuted text-xs">{title}</p>
     </div>
   </div>

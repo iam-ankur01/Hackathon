@@ -103,24 +103,60 @@ _CATEGORY_LABELS = {
 
 _FALLBACK_TASKS = {
     "public_speaking": [
-        "Record a 2-minute answer; review pacing and tone.",
-        "Practice one STAR story aloud with deliberate pauses.",
-        "Mirror drill: 5 minutes of confident delivery.",
+        {
+            "title": "Record & diagnose a 2-minute answer",
+            "detail": "Pick a common question (e.g. 'Tell me about yourself'), record on your phone, then replay with a timer. Count fillers, mark 3 spots where pace dropped, and write one concrete change for tomorrow.",
+        },
+        {
+            "title": "STAR delivery drill with deliberate pauses",
+            "detail": "Pick one past project. Say it aloud in under 90 seconds using Situation-Task-Action-Result. Insert a full 1-second pause between each letter. Repeat 3 times; the goal is a calm, structured cadence, not speed.",
+        },
+        {
+            "title": "Mirror confidence reps (5 minutes)",
+            "detail": "Stand, shoulders back, eye contact with the mirror. Answer 'Why this role?' three different ways. Focus on steady tone, open posture, and ending each answer with a clear full stop instead of trailing off.",
+        },
     ],
     "answer_quality": [
-        "Write 3 STAR answers tied to the job description.",
-        "Deep-dive one technical topic from the JD for 30 minutes.",
-        "Rewrite yesterday's weakest answer into a tighter version.",
+        {
+            "title": "Write 3 STAR answers tailored to the JD",
+            "detail": "Pick the 3 most critical bullet points in the job description. For each, write a 4-sentence STAR answer that uses a real project of yours and ends with a concrete, quantified result (%, $, users, latency).",
+        },
+        {
+            "title": "30-minute deep dive on one JD-critical topic",
+            "detail": "Choose the single technical topic from the JD you are weakest on. Read the official docs, build one minimal code example, and write a 5-sentence explainer you could say out loud in an interview.",
+        },
+        {
+            "title": "Rewrite your weakest past answer",
+            "detail": "Open your latest interview transcript, pick the answer that scored lowest on answer_quality, and rewrite it: lead with a one-line direct answer, follow with 2-3 sentences of evidence, and end with impact tied to the JD.",
+        },
     ],
     "consistency_truthfulness": [
-        "Add a metric to one resume bullet (impact, %, time saved).",
-        "Update one GitHub README with project context and tech stack.",
-        "Align one LinkedIn experience entry with your resume.",
+        {
+            "title": "Quantify one resume bullet",
+            "detail": "Pick one vague resume line. Add a measurable outcome — percentage, time saved, revenue, users impacted, or a before/after number. If you don't know the number, estimate defensibly and note the assumption.",
+        },
+        {
+            "title": "Polish one GitHub project README",
+            "detail": "Open your most relevant repo. Rewrite the README to include: a 2-sentence problem statement, tech stack, your specific contribution, and a screenshot or short demo link. Commit the change today.",
+        },
+        {
+            "title": "Align LinkedIn ↔ resume for one role",
+            "detail": "Pick one past job. Make the LinkedIn bullet points match your resume word-for-word on dates, title, and scope. Any story you plan to tell in the interview must be verifiable from both documents.",
+        },
     ],
     "filler_word_assessment": [
-        "2-minute silent pause drill.",
-        "Read aloud 10 minutes; mark fillers in the transcript.",
-        "Record a 1-minute self-intro; target < 2 fillers/min.",
+        {
+            "title": "Silent pause drill (2 minutes)",
+            "detail": "Set a 2-minute timer. Answer 'Walk me through your resume' out loud. Every time you feel an 'um' coming, close your mouth and wait one full second instead. Record it and count how many you caught.",
+        },
+        {
+            "title": "Read aloud + transcript mark-up (10 min)",
+            "detail": "Read a technical article aloud for 10 minutes while recording. Transcribe it (or use any speech-to-text). Highlight every filler word in red and note the 3 sentence shapes that triggered the most fillers.",
+        },
+        {
+            "title": "60-second self-intro, under 2 fillers/min",
+            "detail": "Record a 60-second self-introduction. Transcribe, count fillers, and re-record until you hit <2 fillers per minute for two takes in a row. Save the best take as your baseline for next week.",
+        },
     ],
 }
 
@@ -152,11 +188,17 @@ def _fallback_roadmap(report: dict, days: int) -> dict:
     for i in range(days):
         focus_key = weak_areas[i % len(weak_areas)]
         tasks_pool = _FALLBACK_TASKS.get(focus_key, _FALLBACK_TASKS["answer_quality"])
+        # Rotate through the pool so consecutive days on the same focus don't repeat.
+        rotated = [
+            tasks_pool[(i + 0) % len(tasks_pool)],
+            tasks_pool[(i + 1) % len(tasks_pool)],
+            tasks_pool[(i + 2) % len(tasks_pool)],
+        ]
         plan.append({
             "day": i + 1,
             "focus_area": _CATEGORY_LABELS.get(focus_key, focus_key),
-            "tasks": [tasks_pool[i % len(tasks_pool)], tasks_pool[(i + 1) % len(tasks_pool)]],
-            "time_estimate_minutes": 45,
+            "tasks": [dict(t) for t in rotated],
+            "time_estimate_minutes": 60,
         })
 
     return {
@@ -164,6 +206,30 @@ def _fallback_roadmap(report: dict, days: int) -> dict:
         "summary": f"{days}-day plan focused on {', '.join(_CATEGORY_LABELS.get(k, k) for k in weak_areas[:2])}.",
         "days": plan,
     }
+
+
+def _normalize_tasks(raw_tasks) -> list:
+    """Accept either list[str] or list[dict] and return list[{title, detail}].
+
+    Older LLM responses may emit plain strings; richer ones emit
+    {"title": "...", "detail": "..."}. We always normalize to the object
+    form so the UI can render both consistently.
+    """
+    out = []
+    for t in raw_tasks or []:
+        if isinstance(t, dict):
+            title = (t.get("title") or t.get("task") or "").strip()
+            detail = (t.get("detail") or t.get("description") or t.get("how") or "").strip()
+            if not title and detail:
+                # Promote detail to title if title is missing.
+                title, detail = detail, ""
+            if title:
+                out.append({"title": title, "detail": detail})
+        elif isinstance(t, str):
+            s = t.strip()
+            if s:
+                out.append({"title": s, "detail": ""})
+    return out
 
 
 def generate_roadmap(report: dict, days: int) -> dict:
@@ -194,22 +260,58 @@ def generate_roadmap(report: dict, days: int) -> dict:
         return _fallback_roadmap(report, days)
 
     system_prompt = (
-        "You are a senior interview coach. Build a concrete, day-by-day preparation plan "
-        "for a candidate based on their scored interview report. The plan MUST: "
-        "(1) be aligned with the candidate's weakest categories, "
-        "(2) span EXACTLY the number of days requested, "
-        "(3) include 2-4 concrete tasks per day, each <= 25 words, "
-        "(4) rotate focus areas so no single day is repeated verbatim, "
-        "(5) ramp from diagnosis and drills in early days to mock practice in later days. "
-        "Return ONLY valid JSON matching the schema."
+        "You are a world-class interview coach (think ex-FAANG hiring manager) building "
+        "a serious, personalized prep plan. This is NOT a generic to-do list — every "
+        "task must feel hand-crafted for THIS candidate's specific weaknesses and "
+        "strengths pulled from their interview report.\n\n"
+        "HARD RULES:\n"
+        "1. Produce EXACTLY the number of days requested.\n"
+        "2. Each day has 2-4 tasks. Each task is a JSON object with:\n"
+        "   - \"title\": 4-10 word action phrase, imperative verb first (e.g. "
+        "'Record a 90-second STAR answer for system-design question').\n"
+        "   - \"detail\": 25-55 words. Must include: the concrete step, HOW to do it "
+        "(tool/technique/template), and a SUCCESS CRITERION (measurable outcome, "
+        "timer, target count, or self-review check). Reference the candidate's actual "
+        "weakness justification when possible.\n"
+        "3. Each day ALSO has a \"focus_area\" (one of the category labels) and a "
+        "realistic \"time_estimate_minutes\" (30-150, sum of all tasks that day).\n"
+        "4. Rotate focus areas across days — weakest categories get more days, but no "
+        "two consecutive days are identical. Never reuse the same title twice in the "
+        "whole plan.\n"
+        "5. Arc: Days 1-20% = diagnosis + foundational drills. Middle 60% = targeted "
+        "skill reps + content creation. Final 20% = full mock interviews and polish.\n"
+        "6. Tasks must be ACTIONABLE TODAY — not vague advice. Bad: 'Improve "
+        "confidence'. Good: 'Record 3 takes of the Amazon Leadership Principles "
+        "question; keep the one where your first sentence lands in under 8 seconds.'\n"
+        "7. Ground in the report: cite the candidate's named weaknesses, strengths, "
+        "or improvement areas at least once every 3 days.\n"
+        "Return ONLY valid JSON matching the schema — no prose outside JSON."
     )
 
     schema_hint = (
         '{"primary_focus": "<category label>", '
-        '"summary": "<1-2 sentences framing the plan>", '
-        '"days": [{"day": <int starting at 1>, "focus_area": "<label>", '
-        '"tasks": ["..."], "time_estimate_minutes": <int>}]}'
+        '"summary": "<2-3 sentences framing the plan, referencing the candidate\'s '
+        'weakest categories by name and the overall arc>", '
+        '"days": [{"day": <int starting at 1>, "focus_area": "<category label>", '
+        '"tasks": [{"title": "<4-10 word imperative>", '
+        '"detail": "<25-55 word how-to with success criterion>"}], '
+        '"time_estimate_minutes": <int, 30-150>}]}'
     )
+
+    few_shot_example = {
+        "focus_area": "Answer Quality",
+        "tasks": [
+            {
+                "title": "Draft 3 STAR answers for JD-critical bullets",
+                "detail": "Pick the 3 highest-priority requirements from the job description. For each, write a 4-sentence STAR answer using a real project, ending with a quantified result. Success: each answer fits in under 90 spoken seconds when timed.",
+            },
+            {
+                "title": "Rewrite your weakest past answer",
+                "detail": "From your latest interview transcript, take the lowest-scoring answer. Rewrite it to lead with a 1-line direct answer, then 2-3 sentences of specific evidence. Success: second version is at least 20% shorter with higher specificity.",
+            },
+        ],
+        "time_estimate_minutes": 90,
+    }
 
     user_payload = {
         "days_requested": days,
@@ -218,18 +320,25 @@ def generate_roadmap(report: dict, days: int) -> dict:
         "areas_for_improvement": improvements,
         "executive_summary": exec_summary,
         "schema": schema_hint,
+        "example_day": few_shot_example,
+        "instruction": (
+            f"Generate exactly {days} days. Every single task must match the quality "
+            "and specificity of example_day. No generic one-liners. No 2-word tasks."
+        ),
     }
 
     try:
         client = _get_groq_client()
+        # Larger token budget because tasks are now full objects with detail strings.
+        token_budget = max(3500, min(8000, 180 * days + 1200))
         response = client.chat.completions.create(
             model=_GROQ_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(user_payload)},
             ],
-            temperature=0.3,
-            max_tokens=3500,
+            temperature=0.5,
+            max_tokens=token_budget,
             response_format={"type": "json_object"},
         )
         data = json.loads(response.choices[0].message.content.strip())
@@ -246,9 +355,12 @@ def generate_roadmap(report: dict, days: int) -> dict:
 
         for i, d in enumerate(plan_days, start=1):
             d["day"] = i
-            d.setdefault("tasks", [])
+            d["tasks"] = _normalize_tasks(d.get("tasks"))
             d.setdefault("focus_area", _CATEGORY_LABELS.get(weak_keys[0], weak_keys[0]))
-            d.setdefault("time_estimate_minutes", 45)
+            # If the model under-specified the time, estimate from task detail length.
+            if not d.get("time_estimate_minutes"):
+                words = sum(len((t.get("detail") or "").split()) + 5 for t in d["tasks"])
+                d["time_estimate_minutes"] = max(30, min(150, 15 + words // 3))
 
         return {
             "primary_focus": data.get("primary_focus")

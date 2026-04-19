@@ -73,7 +73,7 @@ const Roadmap = () => {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display font-bold text-2xl text-white mb-1 flex items-center gap-2">
+          <h1 className="font-display font-bold text-2xl text-textMain mb-1 flex items-center gap-2">
             <Map className="w-5 h-5 text-primary" />Your Personalized Roadmap
           </h1>
           <p className="text-textMuted text-sm">
@@ -82,7 +82,7 @@ const Roadmap = () => {
         </div>
         {totalTasks > 0 && (
           <div className="text-right">
-            <p className="text-3xl font-display font-bold text-white">
+            <p className="text-3xl font-display font-bold text-textMain">
               {doneCount}<span className="text-textMuted text-lg">/{totalTasks}</span>
             </p>
             <p className="text-xs text-textMuted">tasks complete</p>
@@ -98,7 +98,7 @@ const Roadmap = () => {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-white font-semibold">
+            <p className="text-textMain font-semibold">
               How many days do you want to prepare for your next interview?
             </p>
             <p className="text-textMuted text-xs mt-1">
@@ -114,8 +114,7 @@ const Roadmap = () => {
             max={180}
             value={pendingDays}
             onChange={(e) => setPendingDays(e.target.value)}
-            className="w-28 bg-transparent outline-none text-white text-sm px-3 py-2 rounded-lg"
-            style={{background:'rgba(15,22,40,0.9)',border:'1px solid rgba(255,255,255,0.08)'}}
+            className="input-field w-28 text-sm py-2"
           />
           <span className="text-textMuted text-sm">days</span>
           <button
@@ -136,8 +135,8 @@ const Roadmap = () => {
           <Target className="w-5 h-5 text-primary-light flex-shrink-0 mt-0.5" />
           <div>
             {plan.primary_focus && (
-              <p className="text-white text-sm font-semibold">
-                Primary focus: <span className="text-primary-light">{plan.primary_focus}</span>
+              <p className="text-textMain text-sm font-semibold">
+                Primary focus: <span className="text-primary">{plan.primary_focus}</span>
               </p>
             )}
             {plan.summary && <p className="text-textMuted text-sm mt-1">{plan.summary}</p>}
@@ -194,7 +193,7 @@ const Roadmap = () => {
                     W{wi + 1}
                   </div>
                   <div>
-                    <p className="text-white font-semibold">Week {wi + 1}</p>
+                    <p className="text-textMain font-semibold">Week {wi + 1}</p>
                     <p className="text-textMuted text-xs flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       Day {weekDays[0].day}–{weekDays[weekDays.length - 1].day}
@@ -208,9 +207,9 @@ const Roadmap = () => {
 
               <div className="space-y-3">
                 {weekDays.map((d) => (
-                  <div key={d.day} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                  <div key={d.day} className="rounded-xl p-3" style={{ background: 'rgba(10,10,10,0.03)', border: '1px solid rgba(10,10,10,0.05)' }}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-white text-sm font-medium">
+                      <p className="text-textMain text-sm font-medium">
                         Day {d.day} — <span className="text-textMuted">{d.focus_area}</span>
                       </p>
                       {d.time_estimate_minutes ? (
@@ -221,18 +220,27 @@ const Roadmap = () => {
                       {(d.tasks || []).map((task, ti) => {
                         const key = `${d.day}-${ti}`;
                         const isDone = !!taskStates[key];
+                        const title = typeof task === 'string' ? task : (task?.title || task?.task || '');
+                        const detail = typeof task === 'string' ? '' : (task?.detail || task?.description || '');
                         return (
                           <button
                             key={ti}
                             onClick={() => toggle(d.day, ti)}
-                            className="w-full flex items-start gap-2 p-2 rounded-lg hover:bg-white/3 transition-all text-left"
+                            className="w-full flex items-start gap-2 p-2.5 rounded-lg hover:bg-surfaceHigh transition-all text-left"
                           >
                             {isDone
                               ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color }} />
                               : <Circle className="w-4 h-4 flex-shrink-0 mt-0.5 text-textMuted" />}
-                            <span className={`text-xs leading-relaxed ${isDone ? 'text-textMuted line-through' : 'text-textMain'}`}>
-                              {task}
-                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-medium leading-relaxed ${isDone ? 'text-textMuted line-through' : 'text-textMain'}`}>
+                                {title}
+                              </p>
+                              {detail && (
+                                <p className={`text-[11px] leading-relaxed mt-1 ${isDone ? 'text-textMuted/60 line-through' : 'text-textMuted'}`}>
+                                  {detail}
+                                </p>
+                              )}
+                            </div>
                           </button>
                         );
                       })}

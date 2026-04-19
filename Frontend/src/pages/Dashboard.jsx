@@ -5,7 +5,7 @@ import { Upload, Mic, MicOff, Square, Link as LinkIcon, Briefcase, FileText, Spa
 import { submitInterview, getInterview, getDashboard, uploadResume } from '../lib/api';
 
 const UploadTab = ({ icon: Icon, label, active, onClick }) => (
-  <button onClick={onClick} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? 'text-primary bg-primary/10 border border-primary/25' : 'text-textMuted hover:text-white hover:bg-white/5 border border-transparent'}`}>
+  <button onClick={onClick} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? 'text-primary bg-primary/10 border border-primary/25' : 'text-textMuted hover:text-textMain hover:bg-surfaceHigh border border-transparent'}`}>
     <Icon className="w-4 h-4" /> {label}
   </button>
 );
@@ -190,7 +190,7 @@ const Dashboard = ({ user }) => {
           <Sparkles className="w-10 h-10 text-primary animate-pulse" />
           <div className="absolute inset-0 rounded-2xl border-2 border-primary/40 animate-ping" />
         </div>
-        <h3 className="font-display font-bold text-2xl text-white mb-2">Analyzing your interview...</h3>
+        <h3 className="font-display font-bold text-2xl text-textMain mb-2">Analyzing your interview...</h3>
         <p className="text-textMuted mb-8 text-sm">Processing audio · Detecting patterns · Mapping to role</p>
         <div className="w-64 mx-auto space-y-3">
           {['Transcribing audio','Detecting speech patterns','Evaluating STAR structure','Generating recruiter insights','Building your roadmap'].map((step,i)=>(
@@ -210,7 +210,7 @@ const Dashboard = ({ user }) => {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Welcome */}
       <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}}>
-        <h1 className="font-display font-bold text-2xl text-white mb-0.5">Welcome back, {user?.name?.split(' ')[0] || 'Onkar'} 👋</h1>
+        <h1 className="font-display font-bold text-2xl text-textMain mb-0.5">Welcome back, {user?.name?.split(' ')[0] || 'Onkar'} 👋</h1>
         <p className="text-textMuted text-sm">Upload your interview recording and get a full debrief in under 60 seconds.</p>
       </motion.div>
 
@@ -218,7 +218,7 @@ const Dashboard = ({ user }) => {
         {/* Main upload card */}
         <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="lg:col-span-2 card space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display font-semibold text-white text-lg flex items-center gap-2">
+            <h2 className="font-display font-semibold text-textMain text-lg flex items-center gap-2">
               <Video className="w-5 h-5 text-primary" /> New Analysis
             </h2>
           </div>
@@ -237,21 +237,21 @@ const Dashboard = ({ user }) => {
                   <div
                     onDrop={handleDrop} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
                     onClick={()=>fileRef.current.click()}
-                    className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${drag ? 'border-primary bg-primary/5' : 'border-white/10 hover:border-primary/40 hover:bg-white/2'}`}
+                    className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${drag ? 'border-primary bg-primary/5' : 'border-black/15 hover:border-primary/40 hover:bg-surface'}`}
                   >
                     <input ref={fileRef} type="file" className="hidden" accept="video/*,audio/*" onChange={e=>handleFile(e.target.files[0])} />
                     <Upload className="w-10 h-10 mx-auto mb-3 text-textMuted" />
-                    <p className="text-white font-medium mb-1">Drop your interview recording here</p>
+                    <p className="text-textMain font-medium mb-1">Drop your interview recording here</p>
                     <p className="text-textMuted text-sm">MP4, MOV, WebM, MP3, WAV · Max 500MB</p>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 p-4 rounded-xl" style={{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)'}}>
                     <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                      <p className="text-textMain text-sm font-medium truncate">{file.name}</p>
                       <p className="text-textMuted text-xs">{(file.size/1024/1024).toFixed(1)} MB</p>
                     </div>
-                    <button onClick={()=>setFile(null)} className="text-textMuted hover:text-white"><X className="w-4 h-4" /></button>
+                    <button onClick={()=>setFile(null)} className="text-textMuted hover:text-textMain"><X className="w-4 h-4" /></button>
                   </div>
                 )}
               </motion.div>
@@ -259,7 +259,7 @@ const Dashboard = ({ user }) => {
             {tab === 'record' && (
               <motion.div key="record" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
                 {!recording && !file && (
-                  <div className="text-center py-10 border-2 border-dashed border-white/10 rounded-2xl">
+                  <div className="text-center py-10 border-2 border-dashed border-black/15 rounded-2xl">
                     <button
                       onClick={startRecording}
                       className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center hover:scale-105 transition-transform"
@@ -267,7 +267,7 @@ const Dashboard = ({ user }) => {
                     >
                       <Mic className="w-7 h-7 text-error" />
                     </button>
-                    <p className="text-white font-medium mb-1">Click the mic to start recording</p>
+                    <p className="text-textMain font-medium mb-1">Click the mic to start recording</p>
                     <p className="text-textMuted text-sm">We'll ask for microphone permission the first time.</p>
                     {recError && (
                       <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
@@ -287,7 +287,7 @@ const Dashboard = ({ user }) => {
                       <Mic className="w-7 h-7 text-error" />
                       <span className="absolute inset-0 rounded-full animate-ping" style={{border:'2px solid rgba(239,68,68,0.6)'}} />
                     </div>
-                    <p className="text-white font-medium mb-2 flex items-center justify-center gap-2">
+                    <p className="text-textMain font-medium mb-2 flex items-center justify-center gap-2">
                       <span className="inline-block w-2 h-2 rounded-full bg-error animate-pulse" />
                       Recording… {String(Math.floor(recElapsed/60)).padStart(2,'0')}:{String(recElapsed%60).padStart(2,'0')}
                     </p>
@@ -321,10 +321,10 @@ const Dashboard = ({ user }) => {
                        style={{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)'}}>
                     <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                      <p className="text-textMain text-sm font-medium truncate">{file.name}</p>
                       <p className="text-textMuted text-xs">{(file.size/1024/1024).toFixed(2)} MB · ready to analyze</p>
                     </div>
-                    <button onClick={() => setFile(null)} className="text-textMuted hover:text-white" title="Discard recording">
+                    <button onClick={() => setFile(null)} className="text-textMuted hover:text-textMain" title="Discard recording">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -340,7 +340,7 @@ const Dashboard = ({ user }) => {
           </AnimatePresence>
 
           {/* Job context */}
-          <div className="space-y-3 pt-1 border-t border-white/5">
+          <div className="space-y-3 pt-1 border-t border-black/5">
             <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">Interview Context</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -389,7 +389,7 @@ const Dashboard = ({ user }) => {
         <div className="space-y-5">
           {/* Quick stats */}
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.2}} className="card">
-            <h3 className="font-semibold text-white text-sm mb-4 flex items-center gap-2"><Zap className="w-4 h-4 text-accent" />Quick Stats</h3>
+            <h3 className="font-semibold text-textMain text-sm mb-4 flex items-center gap-2"><Zap className="w-4 h-4 text-accent" />Quick Stats</h3>
             <div className="space-y-3">
               {[
                 {label:'Interviews analyzed', val: String(stats?.total_interviews ?? 0)},
@@ -399,7 +399,7 @@ const Dashboard = ({ user }) => {
               ].map((s,i)=>(
                 <div key={i} className="flex justify-between text-sm">
                   <span className="text-textMuted">{s.label}</span>
-                  <span className="text-white font-medium">{s.val}</span>
+                  <span className="text-textMain font-medium">{s.val}</span>
                 </div>
               ))}
             </div>
@@ -407,14 +407,14 @@ const Dashboard = ({ user }) => {
 
           {/* Recent */}
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}} className="card">
-            <h3 className="font-semibold text-white text-sm mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />Recent Analyses</h3>
+            <h3 className="font-semibold text-textMain text-sm mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />Recent Analyses</h3>
             <div className="space-y-3">
               {recentAnalyses.length === 0 && <p className="text-textMuted text-xs">No analyses yet — upload your first interview.</p>}
               {recentAnalyses.map((a,i)=>(
-                <div key={i} onClick={()=>a.id && navigate(`/results/${a.id}`)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/3 cursor-pointer transition-all border border-transparent hover:border-white/5">
+                <div key={i} onClick={()=>a.id && navigate(`/results/${a.id}`)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surfaceHigh cursor-pointer transition-all border border-transparent hover:border-black/5">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-bold text-sm" style={{background:'rgba(99,102,241,0.12)',color:'#818CF8'}}>{a.score}</div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-white text-xs font-medium truncate">{a.role}</p>
+                    <p className="text-textMain text-xs font-medium truncate">{a.role}</p>
                     <p className="text-textMuted text-xs">{a.stage} · {a.date}</p>
                   </div>
                 </div>

@@ -131,7 +131,7 @@ const History = () => {
     <div className="p-6 max-w-5xl mx-auto space-y-5">
       <div className="flex items-center gap-2">
         <HistoryIcon className="w-5 h-5 text-primary" />
-        <h1 className="font-display font-bold text-2xl text-white">History</h1>
+        <h1 className="font-display font-bold text-2xl text-textMain">History</h1>
       </div>
       <p className="text-textMuted text-sm">
         Every interview you upload or record is saved here with its full transcript.
@@ -146,8 +146,7 @@ const History = () => {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by filename, role, or company…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-sm text-white outline-none"
-            style={{ background: 'rgba(15,22,40,0.9)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="input-field w-full pl-9 pr-3 py-2 text-sm"
           />
         </div>
         <div className="flex items-center gap-2 text-xs text-textMuted">
@@ -156,16 +155,14 @@ const History = () => {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="px-2 py-1.5 rounded-lg text-white text-xs outline-none"
-            style={{ background: 'rgba(15,22,40,0.9)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="input-field px-2 py-1.5 text-xs"
           />
           <span>To</span>
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="px-2 py-1.5 rounded-lg text-white text-xs outline-none"
-            style={{ background: 'rgba(15,22,40,0.9)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="input-field px-2 py-1.5 text-xs"
           />
           {(q || from || to) && (
             <button onClick={() => { setQ(''); setFrom(''); setTo(''); }} className="text-primary-light hover:underline">
@@ -205,7 +202,7 @@ const History = () => {
                     <KindIcon kind={r.file_kind} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{r.filename}</p>
+                    <p className="text-textMain text-sm font-medium truncate">{r.filename}</p>
                     <p className="text-textMuted text-xs">
                       {formatDate(r.created_at)}
                       {r.job_title ? ` · ${r.job_title}` : ''}
@@ -218,7 +215,7 @@ const History = () => {
                       onClick={() => downloadPDF(r)}
                       disabled={!r.transcript_available}
                       title="Download transcript as PDF"
-                      className="p-2 rounded-lg text-textMuted hover:text-white hover:bg-white/5 disabled:opacity-40"
+                      className="p-2 rounded-lg text-textMuted hover:text-primary hover:bg-surfaceHigh disabled:opacity-40"
                     >
                       <Download className="w-4 h-4" /><span className="sr-only">PDF</span>
                     </button>
@@ -226,14 +223,14 @@ const History = () => {
                       onClick={() => downloadDOCX(r)}
                       disabled={!r.transcript_available}
                       title="Download transcript as Word (.docx)"
-                      className="p-2 rounded-lg text-textMuted hover:text-white hover:bg-white/5 disabled:opacity-40"
+                      className="p-2 rounded-lg text-textMuted hover:text-primary hover:bg-surfaceHigh disabled:opacity-40"
                     >
                       <FileText className="w-4 h-4" /><span className="sr-only">DOCX</span>
                     </button>
                     <button
                       onClick={() => setExpanded(isOpen ? null : r.id)}
                       title={isOpen ? 'Collapse' : 'Preview transcript'}
-                      className="p-2 rounded-lg text-textMuted hover:text-white hover:bg-white/5"
+                      className="p-2 rounded-lg text-textMuted hover:text-primary hover:bg-surfaceHigh"
                     >
                       {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
@@ -252,7 +249,7 @@ const History = () => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-3 pt-3 border-t border-white/5"
+                    className="mt-3 pt-3 border-t border-black/5"
                   >
                     {r.transcript_available ? (
                       <>

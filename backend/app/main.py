@@ -19,10 +19,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# FRONTEND_ORIGIN can be a single URL or a comma-separated list, so one deployed
+# backend can serve both the production Vercel domain and preview deployments.
+_origins = [o.strip() for o in (settings.FRONTEND_ORIGIN or "").split(",") if o.strip()]
+if "http://localhost:3000" not in _origins:
+    _origins.append("http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN, "http://localhost:3000"],
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origins=_origins,
+    # Allow any localhost port (dev) and any *.vercel.app preview/prod URL.
+    allow_origin_regex=r"^(http://localhost:\d+|https://[a-z0-9-]+\.vercel\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

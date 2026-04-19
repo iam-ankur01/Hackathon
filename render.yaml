@@ -1,10 +1,12 @@
 services:
   - type: web
     name: hiresight-api
-    runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    runtime: docker
+    # Dockerfile lives in backend/, but we set root to the repo so COPY
+    # can see both backend/ and AI/ (ai_service.py imports from ../AI).
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
     envVars:
       - key: SECRET_KEY
         generateValue: true

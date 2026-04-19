@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
 
     FIREBASE_CREDENTIALS: str = "./firebase-service-account.json"
+    FIREBASE_CREDENTIALS_JSON: str = ""
     FIREBASE_STORAGE_BUCKET: str = ""
 
     FRONTEND_ORIGIN: str = "http://localhost:5173"

@@ -1,4 +1,5 @@
 """Firebase Admin SDK initialization + Firestore / Storage helpers."""
+import json
 import os
 import uuid
 from typing import Optional
@@ -22,14 +23,16 @@ def init_firebase():
             _bucket = None
         return
 
-    cred_path = settings.FIREBASE_CREDENTIALS
-    if not os.path.exists(cred_path):
-        raise FileNotFoundError(
-            f"Firebase service account JSON not found at {cred_path}. "
-            "Download it from Firebase Console > Project Settings > Service Accounts."
-        )
-
-    cred = credentials.Certificate(cred_path)
+    if settings.FIREBASE_CREDENTIALS_JSON:
+        cred = credentials.Certificate(json.loads(settings.FIREBASE_CREDENTIALS_JSON))
+    else:
+        cred_path = settings.FIREBASE_CREDENTIALS
+        if not os.path.exists(cred_path):
+            raise FileNotFoundError(
+                f"Firebase credentials missing. Set FIREBASE_CREDENTIALS_JSON (env) "
+                f"or provide a file at {cred_path}."
+            )
+        cred = credentials.Certificate(cred_path)
     options = {}
     if settings.FIREBASE_STORAGE_BUCKET:
         options["storageBucket"] = settings.FIREBASE_STORAGE_BUCKET

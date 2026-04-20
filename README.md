@@ -1,7 +1,7 @@
 # HireSight
 
 AI interview evaluator — React frontend + FastAPI backend.
-
+#NOTE - IF GROQ API KEY AND FIREBASE API KEY IS NOT WORKING ...YOU HAVE TO CHANGE IT IN .ENV FILE (IN BACKEND AND AI FOLDER)
 ## Stack
 - **Frontend:** React + Vite + Tailwind (`Frontend/`)
 - **Backend:** FastAPI + Firebase + Groq LLM (`backend/`)

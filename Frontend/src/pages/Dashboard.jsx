@@ -13,7 +13,8 @@ const UploadTab = ({ icon: Icon, label, active, onClick }) => (
 const Dashboard = ({ user }) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState('upload');
-  const [file, setFile] = useState(null);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [recordedFile, setRecordedFile] = useState(null);
   const [zoomLink, setZoomLink] = useState('');
   const [jd, setJd] = useState('');
   const [role, setRole] = useState('Software Engineer');
@@ -23,7 +24,7 @@ const Dashboard = ({ user }) => {
   const [drag, setDrag] = useState(false);
   const fileRef = useRef();
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [recentAnalyses, setRecentAnalyses] = useState([]);
 
@@ -92,8 +93,8 @@ const Dashboard = ({ user }) => {
         // Server already accepts these extensions: .webm, .mp4, .ogg.
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const f = new File([blob], `recording-${ts}.${ext}`, { type: blobType });
-        setFile(f);
-        setError('');
+        setRecordedFile(f);
+        setError(null);
       };
       mr.start();
 
@@ -135,13 +136,89 @@ const Dashboard = ({ user }) => {
     }).catch(() => {});
   }, []);
 
-  const handleFile = (f) => { if (f) setFile(f); };
-  const handleDrop = (e) => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
-  const canAnalyze = tab === 'zoom' ? zoomLink : file;
+  const showError = (title, message) => setError({ title, message });
+  const clearError = () => setError(null);
 
+  const switchTab = (nextTab) => {
+    if (recording) stopRecording();
+    setTab(nextTab);
+    clearError();
+    setRecError('');
+  };
+
+  const validateMediaFile = (selectedFile, sourceLabel) => {
+    if (!selectedFile) {
+      showError(`No ${sourceLabel}`, sourceLabel === 'recording'
+        ? 'Click "Start Recording," speak your interview answer, then click "Stop & Save."'
+        : 'Choose or drop an interview audio/video file before starting analysis.');
+      return false;
+    }
+    if (selectedFile.size === 0) {
+      showError('Empty media file', 'The selected file contains no data. Choose a valid recording and try again.');
+      return false;
+    }
+    if (selectedFile.size > 500 * 1024 * 1024) {
+      showError('File is too large', 'The maximum supported size is 500 MB. Compress or trim the recording first.');
+      return false;
+    }
+    const extension = selectedFile.name.split('.').pop()?.toLowerCase();
+    if (!['mp3', 'mp4', 'wav', 'm4a', 'webm', 'ogg', 'mov'].includes(extension)) {
+      showError('Unsupported file format', 'Use MP3, MP4, MOV, WAV, M4A, WebM, or OGG.');
+      return false;
+    }
+    return true;
+  };
+
+  const formatAnalysisError = (raw, source) => {
+    const message = String(raw || '').toLowerCase();
+    if (message.includes('invalid api key') || message.includes('invalid_api_key')) {
+      return ['AI service authentication failed', 'The configured Groq API key is invalid. Add a valid key and restart the backend.'];
+    }
+    if (message.includes('rate limit') || message.includes('429')) {
+      return ['AI service rate limit reached', 'Groq temporarily rejected the request because the usage limit was reached. Wait a minute and retry.'];
+    }
+    if (message.includes('no meaningful interview speech') || message.includes('does not appear to contain an interview')) {
+      return ['Interview speech not detected', 'The recording appears silent, music-only, too short, or unrelated to an interview. Upload clear spoken questions and answers.'];
+    }
+    if (message.includes('ffmpeg') || message.includes('decode') || message.includes('codec')) {
+      return ['Media could not be decoded', 'The recording codec is unsupported or the file is damaged. Export it as MP3, WAV, or MP4 and retry.'];
+    }
+    if (message.includes('transcrib')) {
+      return ['Transcription failed', 'Speech could not be converted to text. Check that voices are clear, audible, and not covered by music.'];
+    }
+    if (message.includes('timeout') || message.includes('taking longer')) {
+      return ['Analysis timed out', 'The analysis did not finish in time. Try a shorter recording or retry when the connection is stable.'];
+    }
+    if (message.includes('network') || message.includes('connection')) {
+      return ['Backend connection failed', 'HireSight could not reach the analysis service. Confirm the backend is running, then retry.'];
+    }
+    return [`${source} analysis failed`, raw || 'An unexpected analysis error occurred. Please retry.'];
+  };
+
+  const handleFile = (f) => { if (f) { setUploadFile(f); clearError(); } };
+  const handleDrop = (e) => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
   const handleAnalyze = async () => {
-    if (!file && !jd) { setError('Please upload an audio/video file.'); return; }
-    setError('');
+    if (tab === 'zoom') {
+      let parsed;
+      try { parsed = new URL(zoomLink.trim()); } catch {
+        showError('Invalid Zoom link', 'Paste a complete Zoom recording URL beginning with https://.');
+        return;
+      }
+      if (!/(^|\.)zoom\.(us|com)$/.test(parsed.hostname.toLowerCase())) {
+        showError('Not a Zoom recording link', 'The URL must point to a Zoom recording page.');
+        return;
+      }
+      showError('Zoom import is not available yet', 'HireSight cannot securely download Zoom cloud recordings from a webpage link yet. Download the recording from Zoom, then analyze it using Upload File.');
+      return;
+    }
+
+    const file = tab === 'record' ? recordedFile : uploadFile;
+    if (!validateMediaFile(file, tab === 'record' ? 'recording' : 'file selected')) return;
+    if (tab === 'record' && recElapsed < 5) {
+      showError('Recording is too short', 'Record at least 5 seconds of clear interview speech before analysis.');
+      return;
+    }
+    clearError();
     setLoading(true);
     try {
       const res = await submitInterview({
@@ -162,17 +239,26 @@ const Dashboard = ({ user }) => {
             return;
           }
           if (data.status === 'failed') {
-            setError(`Analysis failed: ${data.error || 'unknown error'}`);
+            const [title, message] = formatAnalysisError(data.error, tab === 'record' ? 'Recorded audio' : 'Uploaded file');
+            showError(title, message);
             setLoading(false);
             return;
           }
-        } catch (e) { /* keep polling */ }
+        } catch (pollError) {
+          if (tries >= 3) {
+            const [title, message] = formatAnalysisError(pollError?.message, 'Status check');
+            showError(title, message);
+            setLoading(false);
+            return;
+          }
+        }
         if (tries < 60) setTimeout(poll, 3000);
-        else { setError('Analysis is taking longer than expected. Check back later.'); setLoading(false); }
+        else { showError('Analysis timed out', 'The analysis did not finish within 3 minutes. Try a shorter recording or retry later.'); setLoading(false); }
       };
       setTimeout(poll, 3000);
     } catch (err) {
-      setError(err?.response?.data?.detail || err.message || 'Upload failed');
+      const [title, message] = formatAnalysisError(err?.response?.data?.detail || err.message, tab === 'record' ? 'Recorded audio' : 'File upload');
+      showError(title, message);
       setLoading(false);
     }
   };
@@ -180,7 +266,7 @@ const Dashboard = ({ user }) => {
   const handleResumePick = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    try { await uploadResume(f); } catch (err) { setError('Resume upload failed'); }
+    try { await uploadResume(f); } catch (err) { showError('Resume upload failed', err?.response?.data?.detail || 'Use a valid PDF or DOCX file and try again.'); }
   };
 
   if (loading) return (
@@ -225,15 +311,15 @@ const Dashboard = ({ user }) => {
 
           {/* Upload tabs */}
           <div className="flex gap-2 flex-wrap">
-            <UploadTab icon={Upload} label="Upload File" active={tab==='upload'} onClick={()=>setTab('upload')} />
-            <UploadTab icon={Mic} label="Record Audio" active={tab==='record'} onClick={()=>setTab('record')} />
-            <UploadTab icon={LinkIcon} label="Zoom Link" active={tab==='zoom'} onClick={()=>setTab('zoom')} />
+            <UploadTab icon={Upload} label="Upload File" active={tab==='upload'} onClick={()=>switchTab('upload')} />
+            <UploadTab icon={Mic} label="Record Audio" active={tab==='record'} onClick={()=>switchTab('record')} />
+            <UploadTab icon={LinkIcon} label="Zoom Link" active={tab==='zoom'} onClick={()=>switchTab('zoom')} />
           </div>
 
           <AnimatePresence mode="wait">
             {tab === 'upload' && (
               <motion.div key="upload" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
-                {!file ? (
+                {!uploadFile ? (
                   <div
                     onDrop={handleDrop} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)}
                     onClick={()=>fileRef.current.click()}
@@ -248,27 +334,28 @@ const Dashboard = ({ user }) => {
                   <div className="flex items-center gap-3 p-4 rounded-xl" style={{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)'}}>
                     <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-textMain text-sm font-medium truncate">{file.name}</p>
-                      <p className="text-textMuted text-xs">{(file.size/1024/1024).toFixed(1)} MB</p>
+                      <p className="text-textMain text-sm font-medium truncate">{uploadFile.name}</p>
+                      <p className="text-textMuted text-xs">{(uploadFile.size/1024/1024).toFixed(1)} MB</p>
                     </div>
-                    <button onClick={()=>setFile(null)} className="text-textMuted hover:text-textMain"><X className="w-4 h-4" /></button>
+                    <button onClick={()=>setUploadFile(null)} className="text-textMuted hover:text-textMain"><X className="w-4 h-4" /></button>
                   </div>
                 )}
               </motion.div>
             )}
             {tab === 'record' && (
               <motion.div key="record" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
-                {!recording && !file && (
+                {!recording && !recordedFile && (
                   <div className="text-center py-10 border-2 border-dashed border-black/15 rounded-2xl">
                     <button
                       onClick={startRecording}
-                      className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center hover:scale-105 transition-transform"
-                      style={{background:'rgba(239,68,68,0.15)',border:'2px solid rgba(239,68,68,0.4)'}}
+                      className="mx-auto mb-4 rounded-xl px-5 py-3 flex items-center gap-2 text-white font-semibold hover:scale-[1.02] transition-transform"
+                      style={{background:'#dc2626', boxShadow:'0 8px 20px rgba(220,38,38,0.22)'}}
                     >
-                      <Mic className="w-7 h-7 text-error" />
+                      <Mic className="w-5 h-5" />
+                      Start Recording
                     </button>
-                    <p className="text-textMain font-medium mb-1">Click the mic to start recording</p>
-                    <p className="text-textMuted text-sm">We'll ask for microphone permission the first time.</p>
+                    <p className="text-textMain font-medium mb-1">Record your interview answer</p>
+                    <p className="text-textMuted text-sm">We&apos;ll ask for microphone permission the first time.</p>
                     {recError && (
                       <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
                            style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.3)',color:'#fca5a5'}}>
@@ -316,15 +403,15 @@ const Dashboard = ({ user }) => {
                   </div>
                 )}
 
-                {!recording && file && file.name?.startsWith('recording-') && (
+                {!recording && recordedFile && (
                   <div className="flex items-center gap-3 p-4 rounded-xl"
                        style={{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)'}}>
                     <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-textMain text-sm font-medium truncate">{file.name}</p>
-                      <p className="text-textMuted text-xs">{(file.size/1024/1024).toFixed(2)} MB · ready to analyze</p>
+                      <p className="text-textMain text-sm font-medium truncate">{recordedFile.name}</p>
+                      <p className="text-textMuted text-xs">{(recordedFile.size/1024/1024).toFixed(2)} MB · ready to analyze</p>
                     </div>
-                    <button onClick={() => setFile(null)} className="text-textMuted hover:text-textMain" title="Discard recording">
+                    <button onClick={() => { setRecordedFile(null); setRecElapsed(0); }} className="text-textMuted hover:text-textMain" title="Discard recording">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -334,7 +421,7 @@ const Dashboard = ({ user }) => {
             {tab === 'zoom' && (
               <motion.div key="zoom" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
                 <input className="input-field" placeholder="Paste your Zoom cloud recording link here..." value={zoomLink} onChange={e=>setZoomLink(e.target.value)} />
-                <p className="text-textMuted text-xs mt-2">We'll automatically extract and analyze the audio from the recording</p>
+                <p className="text-textMuted text-xs mt-2">Paste a Zoom cloud recording URL. If direct import is unavailable, HireSight will explain how to continue.</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -379,8 +466,13 @@ const Dashboard = ({ user }) => {
             <textarea className="input-field text-sm h-28 resize-none" placeholder="Paste the job description here — we'll map your answers against the actual role requirements..." value={jd} onChange={e=>setJd(e.target.value)} />
           </div>
 
-          {error && <p className="text-error text-sm">{error}</p>}
-          <button onClick={handleAnalyze} disabled={!file} className={`btn-primary w-full flex items-center justify-center gap-2 py-3.5 ${(!file) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          {error && (
+            <div className="rounded-xl p-4" role="alert" style={{background:'#fef2f2', border:'1px solid rgba(185,28,28,0.2)'}}>
+              <p className="font-semibold text-sm" style={{color:'#991b1b'}}>{error.title}</p>
+              <p className="text-sm mt-1" style={{color:'#b91c1c'}}>{error.message}</p>
+            </div>
+          )}
+          <button onClick={handleAnalyze} className="btn-primary w-full flex items-center justify-center gap-2 py-3.5">
             <Sparkles className="w-5 h-5" /> Analyze Interview
           </button>
         </motion.div>

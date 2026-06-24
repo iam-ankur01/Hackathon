@@ -46,12 +46,13 @@ const Profile = ({ user, setUser }) => {
       setForm((f) => ({ ...f, ...u }));
       setUser && setUser(u);
     }).catch(() => {});
-  }, []);
+  }, [setUser]);
 
   const save = async () => {
     setSaving(true);
     try {
-      const { email, ...patch } = form; // email is immutable
+      const patch = { ...form };
+      delete patch.email; // email is immutable
       const updated = await updateProfile(patch);
       setUser && setUser(updated);
       const token = localStorage.getItem('hs_token');
@@ -63,7 +64,11 @@ const Profile = ({ user, setUser }) => {
   const onResumeChange = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    try { await uploadResume(f); } catch {}
+    try {
+      await uploadResume(f);
+    } catch {
+      return;
+    }
   };
 
   const fieldProps = { form, setForm, edit };
@@ -107,7 +112,7 @@ const Profile = ({ user, setUser }) => {
                 <span className="text-textMuted text-xs">HireScore™</span>
               </div>
             </div>
-            <p className="text-xs text-textMuted mt-2">+8 points this week</p>
+            <p className="text-xs text-textMuted mt-2">{hirescore > 0 ? 'Based on valid analyses' : 'No valid analyses yet'}</p>
           </motion.div>
 
           <div className="card">

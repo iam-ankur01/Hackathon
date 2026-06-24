@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Brain, BarChart3, Map, MessageSquare, Trophy, Upload, Mic, Github, Linkedin } from 'lucide-react';
+import { ArrowRight, Brain, BarChart3, Map, MessageSquare, Trophy, Upload, Github, Linkedin } from 'lucide-react';
 
 const features = [
   { icon: Upload, title: 'Upload Any Interview', desc: 'Drop your audio, video, or paste a Zoom recording link. We handle the rest.' },

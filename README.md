@@ -1,42 +1,50 @@
 # HireSight
 
-AI interview evaluator — React frontend + FastAPI backend.
+AI-assisted interview evaluation with a React/Vite frontend, FastAPI backend,
+Firestore persistence, Firebase Storage, and Groq transcription/scoring.
 
-#NOTE - IF GROQ API KEY AND FIREBASE API KEY IS NOT WORKING ...YOU HAVE TO CHANGE IT IN .ENV FILE (IN BACKEND AND AI FOLDER)
+## Local development
 
-## Stack
-- **Frontend:** React + Vite + Tailwind (`Frontend/`)
-- **Backend:** FastAPI + Firebase + Groq LLM (`backend/`)
+### Backend
 
-## Run locally
-
-**Backend**
-```bash
+```powershell
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+Copy-Item .env.example .env
+# Fill in local values. USE_LOCAL_DB=true works without Firebase.
+python run.py
 ```
 
-**Frontend**
-```bash
+The API runs at http://127.0.0.1:8000 and documentation is available at
+http://127.0.0.1:8000/docs.
+
+### Frontend
+
+```powershell
 cd Frontend
 npm install
-npm run dev
+Copy-Item .env.example .env
+npm run dev -- --host 127.0.0.1
 ```
 
-Set `VITE_API_URL` in `Frontend/.env` to your backend URL (default `http://localhost:8000`).
+The web app runs at http://127.0.0.1:5173.
 
-## Deploy
+## Verification
 
-**Backend → Render**
-- New Web Service → repo root `backend/`
-- Build: `pip install -r requirements.txt`
-- Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Env vars: `FIREBASE_CREDENTIALS_JSON`, `GROQ_API_KEY`, `JWT_SECRET`, `ALLOWED_ORIGIN`
+```powershell
+cd Frontend
+npm run lint
+npm run build
+npm run test:e2e
 
-**Frontend → Vercel**
-- Import repo → root `Frontend/`
-- Framework: Vite (auto-detected)
-- Env var: `VITE_API_URL=https://<your-backend>.onrender.com`
+cd ../backend
+python -m compileall -q app
+```
 
-Update FastAPI CORS `allow_origins` to include the Vercel URL.
+## Deployment
+
+The recommended deployment is Vercel for the frontend and a Docker-based
+Render service for the backend, with Firestore and private Firebase Storage.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the full checklist.
+
+Never commit `.env` files or Firebase service-account JSON files.

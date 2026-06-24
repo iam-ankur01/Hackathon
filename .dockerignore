@@ -1,0 +1,15 @@
+.git
+.gitignore
+**/.env
+**/.env.*
+!**/.env.example
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+**/__pycache__/
+**/*.pyc
+Frontend/node_modules/
+Frontend/dist/
+backend/local_data.json
+backend/uploads/
+AI/interview.mp3
+*.log

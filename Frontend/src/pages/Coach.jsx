@@ -9,7 +9,7 @@ const initialMessages = [
 
 const suggestions = ['Practice STAR method with me','How do I reduce filler words?','Review my system design gaps','What jobs should I apply to now?','Fix my LinkedIn headline'];
 
-const Coach = ({ user }) => {
+const Coach = () => {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);

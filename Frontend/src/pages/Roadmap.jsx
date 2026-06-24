@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Circle, Map, Calendar, Target, Sparkles } from 'lucide-react';
 import { getRoadmap, saveRoadmapPreferences, getMe } from '../lib/api';
@@ -14,37 +14,33 @@ const chunkByWeek = (days) => {
 };
 
 const Roadmap = () => {
-  const [days, setDays] = useState(30);
   const [pendingDays, setPendingDays] = useState(30);
   const [plan, setPlan] = useState(null);
   const [taskStates, setTaskStates] = useState({}); // { "day-taskIdx": true }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadRoadmap = (d) => {
+  const loadRoadmap = useCallback((d) => {
     setLoading(true);
     setError('');
     getRoadmap(d)
       .then((r) => {
         setPlan(r);
-        if (r.days_requested) setDays(r.days_requested);
       })
       .catch(() => setError('Could not load your roadmap. Try again.'))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   // On mount: read saved preference, then fetch roadmap.
   useEffect(() => {
     getMe()
       .then((u) => {
         const saved = u?.roadmap_days && Number(u.roadmap_days) > 0 ? Number(u.roadmap_days) : 30;
-        setDays(saved);
         setPendingDays(saved);
         loadRoadmap(saved);
       })
       .catch(() => loadRoadmap(30));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadRoadmap]);
 
   const handleGenerate = async () => {
     const n = Math.max(1, Math.min(180, parseInt(pendingDays, 10) || 30));
@@ -64,7 +60,7 @@ const Roadmap = () => {
   };
 
   const planDays = plan?.days || [];
-  const allTasks = planDays.flatMap((d, di) => (d.tasks || []).map((_, ti) => `${d.day}-${ti}`));
+  const allTasks = planDays.flatMap((d) => (d.tasks || []).map((_, ti) => `${d.day}-${ti}`));
   const doneCount = allTasks.filter((k) => taskStates[k]).length;
   const totalTasks = allTasks.length;
   const weeks = chunkByWeek(planDays);

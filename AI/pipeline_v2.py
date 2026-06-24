@@ -175,7 +175,7 @@ def evaluate_interview(
         raw_transcript = _load_transcript_from_json(interview_path)
         print(f"  ✅ Loaded JSON transcript ({len(raw_transcript)} chars)")
 
-    elif ext in (".mp3", ".mp4", ".wav", ".m4a", ".webm", ".ogg"):
+    elif ext in (".mp3", ".mp4", ".mov", ".wav", ".m4a", ".webm", ".ogg"):
         # Audio/video file — transcribe
         if not os.path.exists(interview_path):
             raise FileNotFoundError(f"Interview file not found: {interview_path}")

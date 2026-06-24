@@ -20,6 +20,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY AI/ ./AI/
 
+RUN useradd --create-home --uid 10001 appuser \
+ && mkdir -p /app/backend/uploads \
+ && chown -R appuser:appuser /app
+
 WORKDIR /app/backend
 
 ENV PYTHONUNBUFFERED=1 \
@@ -27,6 +31,11 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=8000
 
 EXPOSE 8000
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD sh -c 'curl --fail http://127.0.0.1:${PORT:-8000}/health || exit 1'
 
 # Render injects $PORT at runtime; fall back to 8000 locally.
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

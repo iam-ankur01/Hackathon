@@ -8,7 +8,7 @@ preview, and delete them without leaking the full scoring report.
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..firebase import get_db
+from ..firebase import get_db, delete_file
 from ..security import get_current_user
 
 router = APIRouter(prefix="/api/history", tags=["history"])
@@ -66,5 +66,6 @@ def delete_history_entry(history_id: str, current=Depends(get_current_user)):
     data = snap.to_dict() or {}
     if data.get("user_id") != current["id"]:
         raise HTTPException(status_code=403, detail="Not your entry")
+    delete_file(data.get("audio_url", ""))
     ref.delete()
     return {"deleted": history_id}

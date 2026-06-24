@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { MessageSquare, Target, ShieldAlert, Lightbulb, Download, Share2 } from 'lucide-react';
+import { MessageSquare, Target, ShieldAlert, Lightbulb } from 'lucide-react';
 import { getInterview, listInterviews } from '../lib/api';
 
 const ScoreRing = ({ score, label, color }) => {

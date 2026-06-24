@@ -16,3 +16,6 @@ groq==0.11.0
 pypdf==4.3.1
 python-docx==1.1.2
 requests==2.32.3
+pdfplumber==0.11.9
+PyPDF2==3.0.1
+mutagen==1.47.0

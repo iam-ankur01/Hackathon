@@ -22,14 +22,15 @@ app = FastAPI(
 # FRONTEND_ORIGIN can be a single URL or a comma-separated list, so one deployed
 # backend can serve both the production Vercel domain and preview deployments.
 _origins = [o.strip() for o in (settings.FRONTEND_ORIGIN or "").split(",") if o.strip()]
-if "http://localhost:3000" not in _origins:
+if not settings.is_production and "http://localhost:3000" not in _origins:
     _origins.append("http://localhost:3000")
+
+_origin_regex = None if settings.is_production else r"^http://(?:localhost|127\.0\.0\.1):\d+$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    # Allow any localhost port (dev) and any *.vercel.app preview/prod URL.
-    allow_origin_regex=r"^(http://localhost:\d+|https://[a-z0-9-]+\.vercel\.app)$",
+    allow_origin_regex=_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,11 +39,14 @@ app.add_middleware(
 
 @app.on_event("startup")
 def _startup():
+    settings.validate_production()
     try:
         init_firebase()
         print("[startup] Firebase initialized.")
     except Exception as e:
         print(f"[startup] Firebase init failed: {e}")
+        if settings.is_production:
+            raise
 
 
 @app.get("/")
@@ -53,6 +57,14 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.get("/ready")
+def ready():
+    from .firebase import get_db
+
+    list(get_db().collection("_health").limit(1).stream())
+    return {"status": "ready"}
 
 
 app.include_router(auth.router)

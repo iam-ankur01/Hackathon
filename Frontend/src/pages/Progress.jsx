@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Zap, Flame, Star, Lock, TrendingUp, BarChart3 } from 'lucide-react';
+import { Trophy, Zap, Flame, Star, TrendingUp, BarChart3 } from 'lucide-react';
 import { getProgress, getDashboard } from '../lib/api';
 
 const badges = [
@@ -14,11 +14,6 @@ const badges = [
   { icon:'⭐', title:'STAR Master', desc:'90%+ STAR score on any answer', xp:350, earned:false },
 ];
 
-const weeklyData = [
-  { day:'Mon', score:58 }, { day:'Tue', score:59 }, { day:'Wed', score:60 },
-  { day:'Thu', score:61 }, { day:'Fri', score:63 }, { day:'Sat', score:61 }, { day:'Sun', score:61 },
-];
-
 const activityLog = [
   { action:'Uploaded interview recording', xp:'+100 XP', time:'2h ago', icon:'📤' },
   { action:'Completed 3 roadmap tasks', xp:'+75 XP', time:'Yesterday', icon:'✅' },
@@ -29,7 +24,7 @@ const activityLog = [
 
 const levels = ['Rookie','Contender','Strong Candidate','Job-Ready','Hired'];
 
-const Progress = ({ user }) => {
+const Progress = () => {
   const [series, setSeries] = useState([]);
   const [hirescore, setHirescore] = useState(0);
   const [total, setTotal] = useState(0);
@@ -99,7 +94,7 @@ const Progress = ({ user }) => {
         <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="card">
           <h3 className="font-semibold text-textMain mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Score Over Time</h3>
           <div className="flex items-end gap-2 h-36">
-            {(series.length ? series : weeklyData).map((d,i,arr)=>{
+            {series.map((d,i,arr)=>{
               const height = Math.max(8, (d.score / 100) * 100);
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -110,6 +105,9 @@ const Progress = ({ user }) => {
               );
             })}
           </div>
+          {series.length === 0 && (
+            <p className="text-textMuted text-sm text-center mt-4">No valid interview scores yet.</p>
+          )}
         </motion.div>
 
         {/* Activity log */}

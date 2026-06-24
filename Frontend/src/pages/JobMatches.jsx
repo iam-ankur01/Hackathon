@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Briefcase, MapPin, Clock, ExternalLink, Filter, TrendingUp, Target } from 'lucide-react';
-import { getJobs } from '../lib/api';
+import { Briefcase, MapPin, Clock, ExternalLink, TrendingUp, Target } from 'lucide-react';
+import { getJobs, getDashboard } from '../lib/api';
 
 const _fallback = [
   { title:'Software Engineer — Backend', company:'Infosys', location:'Pune', type:'Full-time', posted:'2 days ago', match:88, tier:'apply', skills:['Java','Spring Boot','SQL'], salary:'₹6–9 LPA', fixes:0 },
@@ -23,8 +23,10 @@ const _tierFor = (m) => m >= 70 ? 'apply' : m >= 40 ? 'reach' : 'dream';
 const JobMatches = () => {
   const [filter, setFilter] = useState('all');
   const [jobs, setJobs] = useState([]);
+  const [hirescore, setHirescore] = useState(0);
 
   useEffect(() => {
+    getDashboard().then((data) => setHirescore(Math.round(data?.hirescore || 0))).catch(() => setHirescore(0));
     getJobs().then((data) => {
       setJobs((data || []).map((j) => ({
         title: j.title,
@@ -48,7 +50,7 @@ const JobMatches = () => {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display font-bold text-2xl text-textMain flex items-center gap-2 mb-1"><Briefcase className="w-5 h-5 text-primary" />Job Matches</h1>
-          <p className="text-textMuted text-sm">Calibrated to your HireScore of 61 — sorted by your actual match probability</p>
+          <p className="text-textMuted text-sm">Calibrated to your HireScore of {hirescore} ? sorted by your profile match</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {[['all','All'],['apply','Apply Now'],['reach','Reach'],['dream','Dream']].map(([v,l])=>(

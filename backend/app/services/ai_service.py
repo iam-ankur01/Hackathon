@@ -1,6 +1,7 @@
 """Wrap the AI interview evaluation pipeline."""
 import json
 import os
+import re
 import sys
 from typing import List, Optional
 
@@ -35,6 +36,143 @@ def _get_groq_client():
     return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
+def _grade_for_score(score: float) -> str:
+    for minimum, grade in ((90, "A+"), (85, "A"), (80, "A-"), (75, "B+"),
+                           (70, "B"), (65, "B-"), (60, "C+"), (55, "C"),
+                           (50, "C-")):
+        if score >= minimum:
+            return grade
+    return "D"
+
+
+def _is_groq_service_error(exc: Exception) -> bool:
+    """Detect credential, quota, and connectivity failures from Groq."""
+    message = str(exc).lower()
+    status = getattr(exc, "status_code", None)
+    markers = ("invalid_api_key", "invalid api key", "groq_api_key",
+               "authentication", "rate limit", "connection")
+    return status in {401, 403, 429, 500, 502, 503, 504} or any(
+        marker in message for marker in markers
+    )
+
+
+def _validate_interview_transcript(transcript: str) -> None:
+    """Reject empty, very short, or clearly non-interview transcripts."""
+    text = (transcript or "").strip().lower()
+    words = re.findall(r"\b[\w'-]+\b", text)
+    if len(words) < 25:
+        raise ValueError(
+            "No meaningful interview speech was detected. Upload a recording "
+            "with clear spoken questions and answers; music-only or silent "
+            "videos cannot be scored."
+        )
+
+    question_cues = re.findall(
+        r"\b(tell me|describe|explain|why|how|what|when|where|which)\b|\?",
+        text,
+    )
+    career_terms = {
+        "project", "experience", "team", "role", "company", "customer",
+        "client", "engineer", "developer", "manager", "internship", "skill",
+        "technology", "code", "system", "design", "challenge", "result",
+        "responsibility", "worked", "built", "implemented", "developed",
+        "led", "improved", "reduced", "increased",
+    }
+    career_hits = len(career_terms.intersection(words))
+    has_speaker_labels = "candidate:" in text or "interviewer:" in text
+    looks_like_interview = (
+        has_speaker_labels
+        or (len(question_cues) >= 1 and career_hits >= 1)
+        or career_hits >= 3
+    )
+    if not looks_like_interview:
+        raise ValueError(
+            "The recording does not appear to contain an interview. No score "
+            "was generated. Please upload clear interview questions and answers, "
+            "not music, a reel, or unrelated speech."
+        )
+
+
+def _local_fallback_report(transcript_text: Optional[str], job_description: str,
+                           job_title: str, company_name: str) -> dict:
+    """Produce a clearly labeled deterministic report when Groq is unavailable."""
+    transcript = (transcript_text or "").strip()
+    _validate_interview_transcript(transcript)
+    words = re.findall(r"\b[\w'-]+\b", transcript.lower())
+    word_count = len(words)
+    filler_terms = ("um", "uh", "like", "actually", "basically", "literally")
+    filler_counts = {term: words.count(term) for term in filler_terms}
+    filler_total = sum(filler_counts.values())
+    length_factor = min(word_count / 250, 1.0)
+    public_score = round(15 + 6 * length_factor, 1)
+    answer_score = round(20 + 10 * length_factor, 1)
+    consistency_score = 12.0
+    filler_score = max(0.0, round(10 - min(filler_total, 10) * 0.7, 1))
+    total = round(public_score + answer_score + consistency_score + filler_score, 1)
+    filler_sub_scores = {f'"{term}"': count for term, count in filler_counts.items() if count}
+    filler_sub_scores.update({
+        "Total Filler Count": filler_total,
+        "Filler Rate (per min)": round(filler_total / max(word_count / 130, 1), 1),
+    })
+    summary = (
+        "The transcript was scored with local deterministic heuristics because "
+        "the configured Groq API key was unavailable."
+    )
+    return {
+        "total_score": total,
+        "grade": _grade_for_score(total),
+        "category_breakdown": {
+            "public_speaking": {
+                "score": public_score, "max": 30,
+                "justification": "Estimated from transcript structure; vocal tone and pacing were unavailable.",
+                "sub_scores": {
+                    "Clarity (0-8)": round(public_score * 8 / 30, 1),
+                    "Tone (0-8)": round(public_score * 8 / 30, 1),
+                    "Confidence (0-8)": round(public_score * 8 / 30, 1),
+                    "Articulation (0-6)": round(public_score * 6 / 30, 1),
+                },
+            },
+            "answer_quality": {
+                "score": answer_score, "max": 40,
+                "justification": "Estimated from transcript depth without LLM semantic evaluation.",
+                "sub_scores": {
+                    "Technical Correctness (0-15)": round(answer_score * 15 / 40, 1),
+                    "Question Relevance (0-13)": round(answer_score * 13 / 40, 1),
+                    "JD Relevance (0-12)": round(answer_score * 12 / 40, 1),
+                },
+            },
+            "consistency_truthfulness": {
+                "score": consistency_score, "max": 20,
+                "justification": "Neutral baseline used because local mode cannot cross-verify claims.",
+                "sub_scores": {},
+            },
+            "filler_word_assessment": {
+                "score": filler_score, "max": 10,
+                "justification": f"Detected {filler_total} common fillers in {word_count} words.",
+                "sub_scores": filler_sub_scores,
+            },
+        },
+        "strengths": [
+            "Interview submission completed successfully",
+            "Transcript is available for review",
+        ],
+        "areas_for_improvement": [
+            "Replace filler words with deliberate pauses",
+            "Use concise STAR examples with measurable outcomes",
+            "Regenerate with a valid Groq key for full semantic analysis",
+        ],
+        "executive_summary": summary,
+        "metadata": {
+            "full_transcript": transcript,
+            "analysis_mode": "local_fallback",
+            "word_count": word_count,
+            "job_description_provided": bool(job_description),
+            "job_title": job_title,
+            "company_name": company_name,
+        },
+    }
+
+
 def run_pipeline(
     interview_path: str,
     job_description: str = "",
@@ -48,17 +186,35 @@ def run_pipeline(
     """Run the full evaluation pipeline and return a serializable report dict."""
     from pipeline_v2 import evaluate_interview  # lazy import
 
-    report = evaluate_interview(
-        interview_path=interview_path,
-        job_description=job_description,
-        job_title=job_title,
-        company_name=company_name,
-        resume_path=resume_path,
-        github_url=github_url,
-        linkedin_url=linkedin_url,
-        transcript_text=transcript_text,
-    )
-    return report.to_dict()
+    try:
+        report = evaluate_interview(
+            interview_path=interview_path,
+            job_description=job_description,
+            job_title=job_title,
+            company_name=company_name,
+            resume_path=resume_path,
+            github_url=github_url,
+            linkedin_url=linkedin_url,
+            transcript_text=transcript_text,
+        )
+        result = report.to_dict()
+        _validate_interview_transcript(
+            (result.get("metadata") or {}).get("full_transcript", "")
+        )
+        return result
+    except Exception as exc:
+        if not _is_groq_service_error(exc):
+            raise
+        if not (transcript_text or "").strip():
+            raise RuntimeError(
+                "Audio/video analysis is unavailable because the transcription "
+                "API key is invalid. No score was generated. Configure a valid "
+                "GROQ_API_KEY, then upload the interview again."
+            ) from exc
+        print(f"[ai_service] Groq unavailable; using local fallback: {exc}")
+        return _local_fallback_report(
+            transcript_text, job_description, job_title, company_name
+        )
 
 
 def generate_coach_tips(report: dict) -> dict:

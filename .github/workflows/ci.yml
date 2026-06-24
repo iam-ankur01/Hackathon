@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Compile backend and AI
+        run: |
+          python -m compileall -q backend/app
+          python -m compileall -q AI
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: Frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Start test services
+        env:
+          USE_LOCAL_DB: "true"
+          LOCAL_DB_PATH: /tmp/hiresight-ci.json
+          SECRET_KEY: ci-only-secret-key-at-least-32-characters
+          FRONTEND_ORIGIN: http://127.0.0.1:5173
+          VITE_API_URL: http://127.0.0.1:8000
+        run: |
+          cd backend
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/backend.log 2>&1 &
+          cd ../Frontend
+          npm run dev -- --host 127.0.0.1 > /tmp/frontend.log 2>&1 &
+          for i in {1..30}; do
+            curl --fail http://127.0.0.1:8000/health && curl --fail http://127.0.0.1:5173 && exit 0
+            sleep 2
+          done
+          cat /tmp/backend.log
+          cat /tmp/frontend.log
+          exit 1
+
+      - name: Run Cypress
+        working-directory: Frontend
+        run: npm run test:e2e
